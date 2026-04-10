@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy } from "lucide-react";
+import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sfx } from "@/lib/retroSfx";
+import atlasLogo from "@/assets/atlas-logo.png";
 
 const TEACHER_NAV = [
   { to: "/teacher/courses", icon: BookOpen, label: "COURSES" },
