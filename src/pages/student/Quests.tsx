@@ -1,12 +1,15 @@
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
-import { Swords, CheckCircle, Sparkles } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { motion, AnimatePresence } from "framer-motion";
+import { Swords, CheckCircle, Sparkles, Settings2 } from "lucide-react";
 import { toast } from "sonner";
+import { sfx } from "@/lib/retroSfx";
 
 const TYPE_STYLES: Record<string, string> = {
   recovery: "bg-destructive/10 text-destructive border-destructive/30",
@@ -16,6 +19,35 @@ const TYPE_STYLES: Record<string, string> = {
 export default function StudentQuests() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [bouncing, setBouncing] = useState(false);
+  const [inactivityMin, setInactivityMin] = useState(2);
+  const [showSettings, setShowSettings] = useState(false);
+  const lastActivityRef = useRef(Date.now());
+  const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  // Track user activity
+  const resetActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+    setBouncing(false);
+  }, []);
+
+  useEffect(() => {
+    const events = ["mousemove", "keydown", "click", "touchstart", "scroll"];
+    events.forEach((e) => window.addEventListener(e, resetActivity));
+    return () => events.forEach((e) => window.removeEventListener(e, resetActivity));
+  }, [resetActivity]);
+
+  // Check inactivity
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - lastActivityRef.current) / 1000 / 60;
+      if (elapsed >= inactivityMin) {
+        setBouncing(true);
+        sfx.nudge();
+      }
+    }, 5000);
+    return () => clearInterval(timerRef.current);
+  }, [inactivityMin]);
 
   const { data: quests = [], isLoading } = useQuery({
     queryKey: ["student-quests"],
@@ -42,7 +74,6 @@ export default function StudentQuests() {
         .eq("id", questId);
       if (error) throw error;
 
-      // Award XP
       const { data: progress } = await supabase
         .from("gamification_progress")
         .select("*")
@@ -63,11 +94,15 @@ export default function StudentQuests() {
     },
     onSuccess: (_, questId) => {
       const quest = quests.find((q) => q.id === questId);
+      sfx.success();
       toast.success(`Quest completed! +${quest?.xp_reward || 0} XP ⚡`);
       queryClient.invalidateQueries({ queryKey: ["student-quests"] });
       queryClient.invalidateQueries({ queryKey: ["student-progress"] });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => {
+      sfx.error();
+      toast.error(e.message);
+    },
   });
 
   const activeQuests = quests.filter((q) => q.status === "active");
@@ -75,9 +110,51 @@ export default function StudentQuests() {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-pixel text-[10px] text-foreground flex items-center gap-2">
-        <Swords className="h-4 w-4" /> QUESTS
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
+          <Swords className="h-4 w-4" /> QUESTS
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="font-pixel text-[8px]"
+          onClick={() => { setShowSettings(!showSettings); sfx.click(); }}
+        >
+          <Settings2 className="h-3.5 w-3.5 mr-1" /> SETTINGS
+        </Button>
+      </div>
+
+      {/* Inactivity timer settings */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            <Card className="border-2 border-border">
+              <CardContent className="py-3 space-y-2">
+                <p className="font-pixel text-[9px] text-foreground">⏰ NUDGE TIMER</p>
+                <p className="text-xs text-muted-foreground">
+                  Quests will bounce after {inactivityMin} min{inactivityMin !== 1 ? "s" : ""} of inactivity
+                </p>
+                <Slider
+                  value={[inactivityMin]}
+                  onValueChange={([v]) => setInactivityMin(v)}
+                  min={1}
+                  max={10}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>1 min</span>
+                  <span>10 min</span>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isLoading ? (
         <p className="text-muted-foreground text-sm">Loading...</p>
@@ -94,31 +171,35 @@ export default function StudentQuests() {
         <>
           {activeQuests.length > 0 && (
             <div className="space-y-2">
-              <p className="font-pixel text-[8px] text-accent">⚔️ ACTIVE QUESTS</p>
+              <p className="font-pixel text-[9px] text-accent">⚔️ ACTIVE QUESTS</p>
               {activeQuests.map((quest, i) => (
                 <motion.div
                   key={quest.id}
                   initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  animate={
+                    bouncing
+                      ? { opacity: 1, x: 0, y: [0, -8, 0, -4, 0], transition: { y: { repeat: Infinity, duration: 1.2, ease: "easeInOut" } } }
+                      : { opacity: 1, x: 0 }
+                  }
                   transition={{ delay: i * 0.05 }}
                 >
-                  <Card className="border-2 border-accent/30">
+                  <Card className={`border-2 ${bouncing ? "border-warning/60 shadow-[0_0_12px_hsl(var(--warning)/0.3)]" : "border-accent/30"} transition-all`}>
                     <CardContent className="py-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="font-pixel text-[9px] text-foreground">{quest.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{quest.description}</p>
+                          <p className="font-pixel text-[10px] text-foreground">{quest.title}</p>
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{quest.description}</p>
                           <div className="flex items-center gap-2 mt-2">
                             <Badge className={TYPE_STYLES[quest.type] || ""} variant="outline">
                               {quest.type}
                             </Badge>
-                            <span className="font-pixel text-[7px] text-warning">+{quest.xp_reward} XP</span>
+                            <span className="font-pixel text-[9px] text-warning">+{quest.xp_reward} XP</span>
                           </div>
                         </div>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="font-pixel text-[7px] shrink-0"
+                          className="font-pixel text-[8px] shrink-0"
                           onClick={() => completeQuest.mutate(quest.id)}
                           disabled={completeQuest.isPending}
                         >
@@ -134,13 +215,13 @@ export default function StudentQuests() {
 
           {completedQuests.length > 0 && (
             <div className="space-y-2">
-              <p className="font-pixel text-[8px] text-muted-foreground">✅ COMPLETED ({completedQuests.length})</p>
+              <p className="font-pixel text-[9px] text-muted-foreground">✅ COMPLETED ({completedQuests.length})</p>
               {completedQuests.slice(0, 5).map((quest) => (
                 <Card key={quest.id} className="border border-border opacity-60">
                   <CardContent className="py-2 flex items-center gap-2">
                     <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                    <p className="font-pixel text-[8px] text-muted-foreground truncate">{quest.title}</p>
-                    <span className="font-pixel text-[7px] text-success ml-auto">+{quest.xp_reward} XP</span>
+                    <p className="font-pixel text-[9px] text-muted-foreground truncate">{quest.title}</p>
+                    <span className="font-pixel text-[8px] text-success ml-auto">+{quest.xp_reward} XP</span>
                   </CardContent>
                 </Card>
               ))}
