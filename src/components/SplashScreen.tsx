@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { sfx } from "@/lib/retroSfx";
 
 const BOOT_LINES = [
   { text: "MOMENTUM COMPASS v1.0", delay: 0 },
@@ -32,6 +33,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
 
   const handleSkip = () => {
     if (exiting) return;
+    sfx.click();
     setExiting(true);
     setTimeout(onComplete, 600);
   };
@@ -110,7 +112,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                    className="text-center mt-4 font-pixel text-[7px] text-foreground"
+                    className="text-center mt-4 font-pixel text-[10px] text-foreground"
                   >
                     ▶ CLICK ANYWHERE TO START ◀
                   </motion.div>

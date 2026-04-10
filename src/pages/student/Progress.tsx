@@ -49,7 +49,7 @@ export default function StudentProgress() {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-pixel text-[10px] text-foreground flex items-center gap-2">
+      <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
         <TrendingUp className="h-4 w-4" /> MY PROGRESS
       </h2>
 
@@ -66,7 +66,7 @@ export default function StudentProgress() {
             </motion.div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="font-pixel text-[10px] text-foreground">LEVEL {progress?.level || 1}</span>
+                <span className="font-pixel text-xs text-foreground">LEVEL {progress?.level || 1}</span>
                 <span className="text-xs text-muted-foreground">{progress?.xp || 0} XP</span>
               </div>
               <Progress value={xpProgress} className="h-3" />
@@ -105,7 +105,7 @@ export default function StudentProgress() {
       {/* Momentum gauge */}
       <Card className="border-2 border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="font-pixel text-[9px]">📊 MOMENTUM</CardTitle>
+          <CardTitle className="font-pixel text-[10px]">📊 MOMENTUM</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -121,20 +121,20 @@ export default function StudentProgress() {
       {/* Submission stats */}
       <Card className="border-2 border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="font-pixel text-[9px]">📝 SUBMISSION HISTORY</CardTitle>
+          <CardTitle className="font-pixel text-[10px]">📝 SUBMISSION HISTORY</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="font-pixel text-[12px] text-foreground">{totalSubmissions}</p>
+              <p className="font-pixel text-sm text-foreground">{totalSubmissions}</p>
               <p className="text-xs text-muted-foreground">Total</p>
             </div>
             <div>
-              <p className="font-pixel text-[12px] text-success">{gradedSubmissions}</p>
+              <p className="font-pixel text-sm text-success">{gradedSubmissions}</p>
               <p className="text-xs text-muted-foreground">Graded</p>
             </div>
             <div>
-              <p className="font-pixel text-[12px] text-warning">{totalSubmissions - gradedSubmissions}</p>
+              <p className="font-pixel text-sm text-warning">{totalSubmissions - gradedSubmissions}</p>
               <p className="text-xs text-muted-foreground">Pending</p>
             </div>
           </div>

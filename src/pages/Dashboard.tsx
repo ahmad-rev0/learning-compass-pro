@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sfx } from "@/lib/retroSfx";
 
 const TEACHER_NAV = [
   { to: "/teacher/courses", icon: BookOpen, label: "COURSES" },
@@ -31,7 +32,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
   if (!role) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground font-pixel text-[9px]">LOADING ROLE...</p>
+        <p className="text-muted-foreground font-pixel text-xs">LOADING ROLE...</p>
       </div>
     );
   }
@@ -39,7 +40,6 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
   const nav = role === "teacher" ? TEACHER_NAV : STUDENT_NAV;
   const defaultRoute = role === "teacher" ? "/teacher/courses" : "/student/assignments";
 
-  // Redirect /dashboard to the first nav item
   if (location.pathname === "/dashboard") {
     return <Navigate to={defaultRoute} replace />;
   }
@@ -57,7 +57,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
               🧭
             </motion.span>
             <div>
-              <h1 className="font-pixel text-[10px] md:text-xs tracking-wide text-foreground">
+              <h1 className="font-pixel text-xs md:text-sm tracking-wide text-foreground">
                 MOMENTUM COMPASS
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
@@ -67,13 +67,12 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
-            <Button variant="outline" size="sm" className="font-pixel text-[8px]" onClick={signOut}>
+            <Button variant="outline" size="sm" className="font-pixel text-[9px]" onClick={() => { sfx.click(); signOut(); }}>
               LOG OUT
             </Button>
           </div>
         </div>
 
-        {/* Nav tabs */}
         <div className="container pb-0">
           <nav className="flex gap-1 overflow-x-auto scrollbar-hide -mb-px">
             {nav.map(({ to, icon: Icon, label }) => {
@@ -82,14 +81,15 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
                 <Link
                   key={to}
                   to={to}
+                  onClick={() => sfx.navigate()}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 font-pixel text-[7px] border-b-2 transition-colors whitespace-nowrap",
+                    "flex items-center gap-1.5 px-3 py-2 font-pixel text-[9px] border-b-2 transition-colors whitespace-nowrap",
                     active
                       ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                   )}
                 >
-                  <Icon className="h-3 w-3" />
+                  <Icon className="h-3.5 w-3.5" />
                   {label}
                 </Link>
               );
