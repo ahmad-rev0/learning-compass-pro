@@ -163,7 +163,7 @@ export default function TeacherAssignments() {
                   placeholder='e.g. {"correct_answer": "42"} or [{"q":1,"a":"B"}]'
                   value={answerKey}
                   onChange={(e) => setAnswerKey(e.target.value)}
-                  className="font-mono text-xs"
+                  className="text-xs"
                 />
               </div>
 

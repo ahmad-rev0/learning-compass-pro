@@ -123,7 +123,7 @@ export default function StudentStudyPlan() {
             <Card className="border border-accent/20 bg-accent/5">
               <CardContent className="py-3">
                 <p className="font-pixel text-[8px] text-accent mb-1">🧠 AGENT REASONING</p>
-                <p className="text-xs text-muted-foreground italic">{(activePlan as any).agent_reasoning}</p>
+                <p className="text-xs text-muted-foreground">{(activePlan as any).agent_reasoning}</p>
               </CardContent>
             </Card>
           )}

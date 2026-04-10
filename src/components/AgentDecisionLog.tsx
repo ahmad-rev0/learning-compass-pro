@@ -66,7 +66,7 @@ export function AgentDecisionLog({ decisions }: AgentDecisionLogProps) {
 
                   <div className="flex items-center gap-2 border border-border bg-muted/50 px-2 py-1.5">
                     <span className="text-xs text-muted-foreground">Exa:</span>
-                    <code className="text-sm text-accent">{d.exaQuery}</code>
+                    <span className="text-sm text-accent">{d.exaQuery}</span>
                   </div>
 
                   <div className="flex items-center gap-2">

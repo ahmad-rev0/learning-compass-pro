@@ -143,7 +143,7 @@ export default function StudentUpload() {
                 placeholder={type === "code" ? "Paste your code here..." : "Write your answer here..."}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className={`min-h-[150px] ${type === "code" ? "font-mono text-sm" : ""}`}
+                className={`min-h-[150px] ${type === "code" ? "text-sm" : ""}`}
               />
             )}
 

@@ -122,7 +122,7 @@ export default function AgentDashboard() {
                     </div>
 
                     <p className="font-pixel text-[9px] text-foreground">{log.action_taken}</p>
-                    <p className="text-xs text-muted-foreground italic">{log.reasoning}</p>
+                    <p className="text-xs text-muted-foreground">{log.reasoning}</p>
 
                     {patterns.length > 0 && (
                       <div className="flex gap-1 flex-wrap">

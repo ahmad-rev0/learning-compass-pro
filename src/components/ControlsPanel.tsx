@@ -83,7 +83,7 @@ export function ControlsPanel({ isRunning, connected, demoMode, onStart, onStop,
           </div>
           {!connected && (
             <p className="mt-1.5 text-xs text-muted-foreground">
-              Set <code className="text-accent">VITE_API_URL</code> to connect
+              Set <span className="text-accent">VITE_API_URL</span> to connect
             </p>
           )}
         </div>
