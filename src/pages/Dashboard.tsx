@@ -26,6 +26,7 @@ const STUDENT_NAV = [
 ];
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
+  const [soundOn, setSoundOn] = useState(!sfx.muted);
   const { user, role, loading, signOut } = useAuth();
   const location = useLocation();
 
@@ -46,18 +47,25 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     return <Navigate to={defaultRoute} replace />;
   }
 
+  const toggleSound = () => {
+    const muted = sfx.toggle();
+    setSoundOn(!muted);
+    if (!muted) sfx.click();
+  };
+
   return (
     <div className="min-h-screen bg-background pixel-grid-bg">
       <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
         <div className="container flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
-            <motion.span
+            <motion.img
+              src={atlasLogo}
+              alt="Atlas"
+              width={32}
+              height={32}
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="text-2xl"
-            >
-              🧭
-            </motion.span>
+            />
             <div>
               <h1 className="font-pixel text-xs md:text-sm tracking-wide text-foreground">
                 ATLAS
@@ -67,7 +75,16 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={toggleSound}
+              title={soundOn ? "Mute sounds" : "Unmute sounds"}
+            >
+              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+            </Button>
             <ThemeToggle />
             <Button variant="outline" size="sm" className="font-pixel text-[9px]" onClick={() => { sfx.click(); signOut(); }}>
               LOG OUT
