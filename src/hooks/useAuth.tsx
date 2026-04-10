@@ -61,19 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName } },
+      options: { data: { display_name: displayName, role: selectedRole } },
     });
     if (error) throw error;
-
-    // Insert role
-    if (data.user) {
-      const { error: roleError } = await supabase.from("user_roles").insert({
-        user_id: data.user.id,
-        role: selectedRole,
-      });
-      if (roleError) throw roleError;
-      setRole(selectedRole);
-    }
+    if (data.user) setRole(selectedRole);
   };
 
   const signIn = async (email: string, password: string) => {
