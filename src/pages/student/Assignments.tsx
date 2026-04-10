@@ -219,7 +219,7 @@ function SubmitDialog({ assignment }: { assignment: any }) {
               placeholder="Paste or write your code here..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="min-h-[160px] font-mono text-sm"
+              className="min-h-[160px] text-sm"
               required
             />
           )}
