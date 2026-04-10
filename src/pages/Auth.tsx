@@ -156,16 +156,22 @@ function SignupForm() {
         <div className="flex gap-2">
           <Button
             type="button"
-            variant={role === "student" ? "default" : "outline"}
-            className="flex-1 font-pixel text-[9px]"
+            variant="secondary"
+            className={role === "student"
+              ? "flex-1 font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+              : "flex-1 font-pixel text-[10px] bg-muted/40 hover:bg-muted text-muted-foreground border-2 border-border"
+            }
             onClick={() => setRole("student")}
           >
             📚 STUDENT
           </Button>
           <Button
             type="button"
-            variant={role === "teacher" ? "default" : "outline"}
-            className="flex-1 font-pixel text-[9px]"
+            variant="secondary"
+            className={role === "teacher"
+              ? "flex-1 font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+              : "flex-1 font-pixel text-[10px] bg-muted/40 hover:bg-muted text-muted-foreground border-2 border-border"
+            }
             onClick={() => setRole("teacher")}
           >
             🎓 TEACHER

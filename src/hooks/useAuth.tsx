@@ -15,6 +15,11 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const USER_ROLE_PRIORITY: UserRole[] = ["admin", "teacher", "student"];
+
+const parseUserRole = (value: unknown): UserRole | null => {
+  return USER_ROLE_PRIORITY.includes(value as UserRole) ? (value as UserRole) : null;
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -23,41 +28,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string, userMeta?: Record<string, unknown>) => {
-    const { data } = await supabase
+    const metadataRole = parseUserRole(userMeta?.app_role);
+
+    const { data, error } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (data?.role) {
-      setRole(data.role as UserRole);
-    } else if (userMeta?.role) {
-      // Fallback: role not yet in DB (trigger may be pending), use metadata
-      setRole(userMeta.role as UserRole);
-    } else {
-      setRole("student"); // Safe default
+      .eq("user_id", userId);
+
+    const dbRoles = (data ?? [])
+      .map(({ role }) => parseUserRole(role))
+      .filter((candidate): candidate is UserRole => candidate !== null);
+
+    if (!error && metadataRole && !dbRoles.includes(metadataRole)) {
+      const { error: insertError } = await supabase.from("user_roles").insert({
+        user_id: userId,
+        role: metadataRole,
+      });
+
+      if (!insertError) {
+        dbRoles.unshift(metadataRole);
+      }
     }
+
+    const resolvedRole =
+      metadataRole ??
+      USER_ROLE_PRIORITY.find((candidate) => dbRoles.includes(candidate)) ??
+      "student";
+
+    setRole(resolvedRole);
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setTimeout(() => fetchRole(session.user.id, session.user.user_metadata), 0);
-        } else {
-          setRole(null);
-        }
-        setLoading(false);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchRole(session.user.id, session.user.user_metadata);
+      if (nextSession?.user) {
+        setTimeout(() => fetchRole(nextSession.user.id, nextSession.user.user_metadata), 0);
+      } else {
+        setRole(null);
       }
+
+      setLoading(false);
+    });
+
+    supabase.auth.getSession().then(({ data: { session: nextSession } }) => {
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+
+      if (nextSession?.user) {
+        fetchRole(nextSession.user.id, nextSession.user.user_metadata);
+      }
+
       setLoading(false);
     });
 
@@ -68,8 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { display_name: displayName, role: selectedRole } },
+      options: { data: { display_name: displayName, app_role: selectedRole } },
     });
+
     if (error) throw error;
     if (data.user) setRole(selectedRole);
   };
