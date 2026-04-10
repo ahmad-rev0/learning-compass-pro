@@ -149,8 +149,8 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
     <Card className="border-2 border-border">
       <CardContent className="py-3 flex flex-col items-center gap-1 text-center">
         {icon}
-        <p className="font-pixel text-[7px] text-muted-foreground">{label}</p>
-        <p className="font-pixel text-[10px] text-foreground">{value}</p>
+        <p className="font-pixel text-[8px] text-muted-foreground">{label}</p>
+        <p className="font-pixel text-xs text-foreground">{value}</p>
       </CardContent>
     </Card>
   );
