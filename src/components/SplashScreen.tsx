@@ -110,7 +110,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                    className="text-center mt-4 font-pixel text-[7px] text-foreground"
+                    className="text-center mt-4 font-pixel text-[10px] text-foreground"
                   >
                     ▶ CLICK ANYWHERE TO START ◀
                   </motion.div>
