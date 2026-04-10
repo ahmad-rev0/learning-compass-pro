@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_logs: {
+        Row: {
+          action_taken: string
+          confidence: number
+          created_at: string
+          detected_state: string
+          id: string
+          metrics_snapshot: Json | null
+          patterns_found: Json | null
+          reasoning: string
+          trigger_source: string
+          user_id: string
+        }
+        Insert: {
+          action_taken: string
+          confidence?: number
+          created_at?: string
+          detected_state?: string
+          id?: string
+          metrics_snapshot?: Json | null
+          patterns_found?: Json | null
+          reasoning: string
+          trigger_source?: string
+          user_id: string
+        }
+        Update: {
+          action_taken?: string
+          confidence?: number
+          created_at?: string
+          detected_state?: string
+          id?: string
+          metrics_snapshot?: Json | null
+          patterns_found?: Json | null
+          reasoning?: string
+          trigger_source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           answer_key: Json | null
@@ -316,6 +355,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      study_plans: {
+        Row: {
+          agent_reasoning: string | null
+          created_at: string
+          difficulty_level: string
+          id: string
+          milestones: Json
+          progress_pct: number
+          status: string
+          title: string
+          topics: Json
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          agent_reasoning?: string | null
+          created_at?: string
+          difficulty_level?: string
+          id?: string
+          milestones?: Json
+          progress_pct?: number
+          status?: string
+          title: string
+          topics?: Json
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          agent_reasoning?: string | null
+          created_at?: string
+          difficulty_level?: string
+          id?: string
+          milestones?: Json
+          progress_pct?: number
+          status?: string
+          title?: string
+          topics?: Json
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: []
       }
       submissions: {
         Row: {
