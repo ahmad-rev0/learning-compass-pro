@@ -22,7 +22,7 @@ export default function Auth() {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <div className="text-center mb-6">
+        <div className="text-center mb-6 flex flex-col items-center">
           <motion.img
             src={atlasLogo}
             alt="Atlas"
@@ -30,18 +30,17 @@ export default function Auth() {
             height={150}
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="mx-auto"
           />
-          <h1 className="font-pixel text-base mt-3 text-foreground">ATLAS</h1>
-          <p className="text-muted-foreground text-base mt-1">Agent × Gamification × Learning</p>
+          <h1 className="font-pixel text-2xl mt-2 text-foreground">ATLAS</h1>
+          <p className="text-muted-foreground text-xl mt-1">Agent × Gamification × Learning</p>
         </div>
 
         <Card className="border-2 border-border">
           <Tabs defaultValue="login">
             <CardHeader className="pb-2">
               <TabsList className="w-full border-2 border-border bg-card">
-                <TabsTrigger value="login" className="flex-1 font-pixel text-[10px]">LOG IN</TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1 font-pixel text-[10px]">SIGN UP</TabsTrigger>
+                <TabsTrigger value="login" className="flex-1 font-pixel text-base">LOG IN</TabsTrigger>
+                <TabsTrigger value="signup" className="flex-1 font-pixel text-base">SIGN UP</TabsTrigger>
               </TabsList>
             </CardHeader>
             <CardContent>
@@ -81,7 +80,7 @@ function LoginForm() {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="text-base"
+        className="text-xl h-12"
         required
       />
       <Input
@@ -89,13 +88,13 @@ function LoginForm() {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="text-base"
+        className="text-xl h-12"
         required
       />
       <Button
         type="submit"
         variant="secondary"
-        className="w-full font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+        className="w-full font-pixel text-base h-12 bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
         disabled={loading}
       >
         {loading ? "LOGGING IN..." : "LOG IN"}
@@ -131,7 +130,7 @@ function SignupForm() {
         placeholder="Display name"
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
-        className="text-base"
+        className="text-xl h-12"
         required
       />
       <Input
@@ -139,7 +138,7 @@ function SignupForm() {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="text-base"
+        className="text-xl h-12"
         required
       />
       <Input
@@ -147,19 +146,19 @@ function SignupForm() {
         placeholder="Password (min 6 characters)"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="text-base"
+        className="text-xl h-12"
         minLength={6}
         required
       />
       <div className="space-y-2">
-        <p className="text-sm text-muted-foreground font-pixel text-[9px]">I AM A:</p>
+        <p className="text-lg text-muted-foreground font-pixel">I AM A:</p>
         <div className="flex gap-2">
           <Button
             type="button"
             variant="secondary"
             className={role === "student"
-              ? "flex-1 font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
-              : "flex-1 font-pixel text-[10px] bg-muted/40 hover:bg-muted text-muted-foreground border-2 border-border"
+              ? "flex-1 font-pixel text-base h-12 bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+              : "flex-1 font-pixel text-base h-12 bg-muted/40 hover:bg-muted text-muted-foreground border-2 border-border"
             }
             onClick={() => setRole("student")}
           >
@@ -169,8 +168,8 @@ function SignupForm() {
             type="button"
             variant="secondary"
             className={role === "teacher"
-              ? "flex-1 font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
-              : "flex-1 font-pixel text-[10px] bg-muted/40 hover:bg-muted text-muted-foreground border-2 border-border"
+              ? "flex-1 font-pixel text-base h-12 bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+              : "flex-1 font-pixel text-base h-12 bg-muted/40 hover:bg-muted text-muted-foreground border-2 border-border"
             }
             onClick={() => setRole("teacher")}
           >
@@ -181,7 +180,7 @@ function SignupForm() {
       <Button
         type="submit"
         variant="secondary"
-        className="w-full font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+        className="w-full font-pixel text-base h-12 bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
         disabled={loading}
       >
         {loading ? "CREATING..." : "CREATE ACCOUNT"}
