@@ -212,8 +212,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           description: string | null
+          error_pattern: string | null
           generated_from: string | null
           id: string
+          resource_url: string | null
           status: string
           title: string
           type: string
@@ -225,8 +227,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          error_pattern?: string | null
           generated_from?: string | null
           id?: string
+          resource_url?: string | null
           status?: string
           title: string
           type?: string
@@ -238,8 +242,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           description?: string | null
+          error_pattern?: string | null
           generated_from?: string | null
           id?: string
+          resource_url?: string | null
           status?: string
           title?: string
           type?: string
