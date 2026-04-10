@@ -11,6 +11,11 @@ import TeacherAssignments from "./pages/teacher/Assignments";
 import TeacherStudents from "./pages/teacher/Students";
 import TeacherSubmissions from "./pages/teacher/Submissions";
 import TeacherAnalytics from "./pages/teacher/Analytics";
+import StudentAssignments from "./pages/student/Assignments";
+import StudentProgress from "./pages/student/Progress";
+import StudentQuests from "./pages/student/Quests";
+import StudentUpload from "./pages/student/Upload";
+import StudentAchievements from "./pages/student/Achievements";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -35,8 +40,12 @@ const App = () => (
             <Route path="/teacher/submissions" element={<DashboardLayout><TeacherSubmissions /></DashboardLayout>} />
             <Route path="/teacher/analytics" element={<DashboardLayout><TeacherAnalytics /></DashboardLayout>} />
 
-            {/* Student routes (placeholder for Phase 3) */}
-            <Route path="/student/*" element={<DashboardLayout><PlaceholderPage label="Coming in Phase 3" /></DashboardLayout>} />
+            {/* Student routes */}
+            <Route path="/student/assignments" element={<DashboardLayout><StudentAssignments /></DashboardLayout>} />
+            <Route path="/student/progress" element={<DashboardLayout><StudentProgress /></DashboardLayout>} />
+            <Route path="/student/quests" element={<DashboardLayout><StudentQuests /></DashboardLayout>} />
+            <Route path="/student/upload" element={<DashboardLayout><StudentUpload /></DashboardLayout>} />
+            <Route path="/student/achievements" element={<DashboardLayout><StudentAchievements /></DashboardLayout>} />
 
             <Route path="/simulation" element={<Index />} />
             <Route path="*" element={<NotFound />} />
@@ -46,13 +55,5 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
-
-function PlaceholderPage({ label }: { label: string }) {
-  return (
-    <div className="flex items-center justify-center py-20">
-      <p className="font-pixel text-[9px] text-muted-foreground">🚧 {label}</p>
-    </div>
-  );
-}
 
 export default App;
