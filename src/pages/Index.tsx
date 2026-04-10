@@ -43,7 +43,6 @@ const Index = () => {
             >
               <img src={atlasLogo} alt="Atlas" width={28} height={28} />
             </motion.span>
-            </motion.span>
             <div>
               <h1 className="font-pixel text-[10px] md:text-xs tracking-wide text-foreground">
                 ATLAS
