@@ -5,7 +5,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
+import DashboardLayout from "./pages/Dashboard";
+import TeacherCourses from "./pages/teacher/Courses";
+import TeacherAssignments from "./pages/teacher/Assignments";
+import TeacherStudents from "./pages/teacher/Students";
+import TeacherSubmissions from "./pages/teacher/Submissions";
+import TeacherAnalytics from "./pages/teacher/Analytics";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -21,9 +26,19 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<DashboardLayout />} />
+
+            {/* Teacher routes */}
+            <Route path="/teacher/courses" element={<DashboardLayout><TeacherCourses /></DashboardLayout>} />
+            <Route path="/teacher/assignments" element={<DashboardLayout><TeacherAssignments /></DashboardLayout>} />
+            <Route path="/teacher/students" element={<DashboardLayout><TeacherStudents /></DashboardLayout>} />
+            <Route path="/teacher/submissions" element={<DashboardLayout><TeacherSubmissions /></DashboardLayout>} />
+            <Route path="/teacher/analytics" element={<DashboardLayout><TeacherAnalytics /></DashboardLayout>} />
+
+            {/* Student routes (placeholder for Phase 3) */}
+            <Route path="/student/*" element={<DashboardLayout><PlaceholderPage label="Coming in Phase 3" /></DashboardLayout>} />
+
             <Route path="/simulation" element={<Index />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
@@ -31,5 +46,13 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
+
+function PlaceholderPage({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center py-20">
+      <p className="font-pixel text-[9px] text-muted-foreground">🚧 {label}</p>
+    </div>
+  );
+}
 
 export default App;
