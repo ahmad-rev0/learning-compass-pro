@@ -146,7 +146,8 @@ const Index = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </motion.div>
+    </>
   );
 };
 
