@@ -26,8 +26,8 @@ export default function Auth() {
           <motion.img
             src={atlasLogo}
             alt="Atlas"
-            width={64}
-            height={64}
+            width={80}
+            height={80}
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             className="mx-auto"
