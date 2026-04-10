@@ -180,6 +180,60 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_achievements: {
+        Row: {
+          category: string
+          claimed: boolean
+          claimed_at: string | null
+          created_at: string
+          criteria_met: string | null
+          description: string
+          difficulty: string
+          emoji: string
+          generated_from: string | null
+          id: string
+          resource_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          category?: string
+          claimed?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          criteria_met?: string | null
+          description: string
+          difficulty?: string
+          emoji?: string
+          generated_from?: string | null
+          id?: string
+          resource_url?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          claimed?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          criteria_met?: string | null
+          description?: string
+          difficulty?: string
+          emoji?: string
+          generated_from?: string | null
+          id?: string
+          resource_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
