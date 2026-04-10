@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, CheckCircle, Sparkles, Settings2 } from "lucide-react";
+import { Swords, CheckCircle, Sparkles, Settings2, ExternalLink, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/retroSfx";
 
@@ -189,12 +189,28 @@ export default function StudentQuests() {
                         <div className="flex-1 min-w-0">
                           <p className="font-pixel text-[10px] text-foreground">{quest.title}</p>
                           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{quest.description}</p>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
                             <Badge className={TYPE_STYLES[quest.type] || ""} variant="outline">
                               {quest.type}
                             </Badge>
                             <span className="font-pixel text-[9px] text-warning">+{quest.xp_reward} XP</span>
+                            {(quest as any).error_pattern?.startsWith("RECURRING:") && (
+                              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[8px]">
+                                <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> PATTERN
+                              </Badge>
+                            )}
                           </div>
+                          {(quest as any).resource_url && (
+                            <a
+                              href={(quest as any).resource_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 mt-2 text-[10px] text-primary hover:underline font-pixel"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <ExternalLink className="h-3 w-3" /> STUDY RESOURCE
+                            </a>
+                          )}
                         </div>
                         <Button
                           size="sm"
