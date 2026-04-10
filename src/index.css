@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 @layer base {
   :root {
@@ -109,17 +109,14 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'VT323', monospace;
-    font-size: 20px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 10px;
+    line-height: 1.6;
     image-rendering: pixelated;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-pixel {
-    font-family: 'Press Start 2P', cursive;
-  }
-
   code, pre, .font-mono {
-    font-family: 'VT323', monospace;
+    font-family: 'Press Start 2P', cursive;
   }
 }
 
