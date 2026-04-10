@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,7 @@ export default function StudentUpload() {
   const [grading, setGrading] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<any>(null);
 
-  // Fetch student's assignments for the dropdown
-  const { data: assignments = [] } = (await import("@tanstack/react-query")).useQuery({
+  const { data: assignments = [] } = useQuery({
     queryKey: ["student-assignments-for-upload"],
     queryFn: async () => {
       const { data, error } = await supabase
