@@ -64,6 +64,27 @@ export type Database = {
           },
         ]
       }
+      badge_unlocks: {
+        Row: {
+          badge_id: string
+          id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          id?: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       course_enrollments: {
         Row: {
           course_id: string
@@ -185,6 +206,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      quests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          generated_from: string | null
+          id: string
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          generated_from?: string | null
+          id?: string
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          xp_reward?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          generated_from?: string | null
+          id?: string
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quests_generated_from_fkey"
+            columns: ["generated_from"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       submissions: {
         Row: {
