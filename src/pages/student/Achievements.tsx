@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
 import { motion } from "framer-motion";
+import { sfx } from "@/lib/retroSfx";
 
 const BADGES = [
   { id: "first_submit", emoji: "🎯", name: "First Steps", desc: "Submit your first assignment" },
@@ -36,7 +37,7 @@ export default function StudentAchievements() {
 
   return (
     <div className="space-y-4">
-      <h2 className="font-pixel text-[10px] text-foreground flex items-center gap-2">
+      <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
         <Trophy className="h-4 w-4" /> ACHIEVEMENTS
       </h2>
 
@@ -59,7 +60,7 @@ export default function StudentAchievements() {
                   >
                     {badge.emoji}
                   </motion.span>
-                  <p className="font-pixel text-[8px] text-foreground mt-2">{badge.name}</p>
+                  <p className="font-pixel text-[9px] text-foreground mt-2">{badge.name}</p>
                   <p className="text-xs text-muted-foreground mt-1">{badge.desc}</p>
                   {isUnlocked ? (
                     <p className="font-pixel text-[7px] text-warning mt-2">✓ UNLOCKED</p>
