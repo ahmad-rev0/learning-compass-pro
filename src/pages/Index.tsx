@@ -1,4 +1,5 @@
 import { useState } from "react";
+import atlasLogo from "@/assets/atlas-logo.png";
 import { useSimulation } from "@/hooks/useSimulation";
 import { StateIndicator } from "@/components/StateIndicator";
 import { StatsBar } from "@/components/StatsBar";
@@ -39,9 +40,8 @@ const Index = () => {
             <motion.span
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-              className="text-2xl"
             >
-              🧭
+              <img src={atlasLogo} alt="Atlas" width={28} height={28} />
             </motion.span>
             <div>
               <h1 className="font-pixel text-[10px] md:text-xs tracking-wide text-foreground">
@@ -133,7 +133,7 @@ const Index = () => {
       <footer className="border-t-3 border-border bg-card/50 py-4 mt-8">
         <div className="container flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span>🧭 Atlas</span>
+            <span><img src={atlasLogo} alt="Atlas" width={16} height={16} className="inline mr-1" />Atlas</span>
             <span className="text-border">|</span>
             <span>Hackathon Project</span>
           </div>

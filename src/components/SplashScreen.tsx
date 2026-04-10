@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { sfx } from "@/lib/retroSfx";
+import atlasLogo from "@/assets/atlas-logo.png";
 
 const BOOT_LINES = [
   { text: "ATLAS v1.0", delay: 0 },
@@ -77,7 +78,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 transition={{ type: "spring", stiffness: 200, damping: 12 }}
                 className="text-center mb-6"
               >
-                <span className="text-4xl block mb-3">🧭</span>
+                <img src={atlasLogo} alt="Atlas" width={48} height={48} className="mx-auto mb-3" />
               </motion.div>
 
               {/* Boot text */}

@@ -3,10 +3,11 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import atlasLogo from "@/assets/atlas-logo.png";
 
 export default function Auth() {
   const { user, loading } = useAuth();
@@ -22,23 +23,25 @@ export default function Auth() {
         className="w-full max-w-md"
       >
         <div className="text-center mb-6">
-          <motion.span
+          <motion.img
+            src={atlasLogo}
+            alt="Atlas"
+            width={64}
+            height={64}
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="text-4xl inline-block"
-          >
-            🧭
-          </motion.span>
-          <h1 className="font-pixel text-sm mt-3 text-foreground">ATLAS</h1>
-          <p className="text-muted-foreground text-sm mt-1">Agent × Gamification × Learning</p>
+            className="mx-auto"
+          />
+          <h1 className="font-pixel text-base mt-3 text-foreground">ATLAS</h1>
+          <p className="text-muted-foreground text-base mt-1">Agent × Gamification × Learning</p>
         </div>
 
         <Card className="border-2 border-border">
           <Tabs defaultValue="login">
             <CardHeader className="pb-2">
               <TabsList className="w-full border-2 border-border bg-card">
-                <TabsTrigger value="login" className="flex-1 font-pixel text-[8px]">LOG IN</TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1 font-pixel text-[8px]">SIGN UP</TabsTrigger>
+                <TabsTrigger value="login" className="flex-1 font-pixel text-[10px]">LOG IN</TabsTrigger>
+                <TabsTrigger value="signup" className="flex-1 font-pixel text-[10px]">SIGN UP</TabsTrigger>
               </TabsList>
             </CardHeader>
             <CardContent>
@@ -78,6 +81,7 @@ function LoginForm() {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        className="text-base"
         required
       />
       <Input
@@ -85,9 +89,15 @@ function LoginForm() {
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        className="text-base"
         required
       />
-      <Button type="submit" className="w-full font-pixel text-[9px]" disabled={loading}>
+      <Button
+        type="submit"
+        variant="secondary"
+        className="w-full font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+        disabled={loading}
+      >
         {loading ? "LOGGING IN..." : "LOG IN"}
       </Button>
     </form>
@@ -121,6 +131,7 @@ function SignupForm() {
         placeholder="Display name"
         value={displayName}
         onChange={(e) => setDisplayName(e.target.value)}
+        className="text-base"
         required
       />
       <Input
@@ -128,6 +139,7 @@ function SignupForm() {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        className="text-base"
         required
       />
       <Input
@@ -135,16 +147,17 @@ function SignupForm() {
         placeholder="Password (min 6 characters)"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
+        className="text-base"
         minLength={6}
         required
       />
       <div className="space-y-2">
-        <p className="text-sm text-muted-foreground font-pixel text-[8px]">I AM A:</p>
+        <p className="text-sm text-muted-foreground font-pixel text-[9px]">I AM A:</p>
         <div className="flex gap-2">
           <Button
             type="button"
             variant={role === "student" ? "default" : "outline"}
-            className="flex-1 font-pixel text-[8px]"
+            className="flex-1 font-pixel text-[9px]"
             onClick={() => setRole("student")}
           >
             📚 STUDENT
@@ -152,14 +165,19 @@ function SignupForm() {
           <Button
             type="button"
             variant={role === "teacher" ? "default" : "outline"}
-            className="flex-1 font-pixel text-[8px]"
+            className="flex-1 font-pixel text-[9px]"
             onClick={() => setRole("teacher")}
           >
             🎓 TEACHER
           </Button>
         </div>
       </div>
-      <Button type="submit" className="w-full font-pixel text-[9px]" disabled={loading}>
+      <Button
+        type="submit"
+        variant="secondary"
+        className="w-full font-pixel text-[10px] bg-secondary hover:bg-secondary/80 text-secondary-foreground border-2 border-border"
+        disabled={loading}
+      >
         {loading ? "CREATING..." : "CREATE ACCOUNT"}
       </Button>
     </form>
