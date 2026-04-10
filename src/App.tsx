@@ -16,6 +16,8 @@ import StudentProgress from "./pages/student/Progress";
 import StudentQuests from "./pages/student/Quests";
 import StudentUpload from "./pages/student/Upload";
 import StudentAchievements from "./pages/student/Achievements";
+import StudentAgentDashboard from "./pages/student/AgentDashboard";
+import StudentStudyPlan from "./pages/student/StudyPlan";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 

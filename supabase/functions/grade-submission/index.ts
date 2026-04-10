@@ -456,7 +456,6 @@ Evaluate quality, correctness, and completeness. Be specific about what needs im
 
       console.log(`Agent generated ${generatedQuests.length} quests (state: ${studentState.state})`);
     } else if (gradeResult.improvements.length > 0) {
-      // Fallback without Exa — still generate quests but without resource URLs
       const questTitle = `Improve: ${gradeResult.improvements[0].slice(0, 60)}`;
       await supabase.from("quests").insert({
         user_id: submission.student_id,
@@ -467,6 +466,29 @@ Evaluate quality, correctness, and completeness. Be specific about what needs im
         generated_from: submission_id,
       });
     }
+
+    // ── 7. Log agent decision ──
+    const confidence = studentState.state === "double_trouble" ? 0.95
+      : studentState.state === "micro_stuck" ? 0.85
+      : studentState.state === "momentum_dip" ? 0.8 : 0.7;
+
+    await supabase.from("agent_logs").insert({
+      user_id: submission.student_id,
+      detected_state: studentState.state,
+      confidence,
+      patterns_found: studentState.metrics.repeatedErrors.slice(0, 5),
+      action_taken: `Graded "${assignment.title}" → ${finalScore}/${assignment.max_score || 100}. Generated ${generatedQuests.length} quests.`,
+      reasoning: `Score: ${finalScore}/${assignment.max_score || 100}. State: ${studentState.state}. Avg recent: ${studentState.metrics.recentScoreAvg.toFixed(0)}%. Trend: ${studentState.metrics.scoreTrend > 0 ? "+" : ""}${studentState.metrics.scoreTrend.toFixed(0)}%. Low scores: ${studentState.metrics.lowScoreCount}. Repeated errors: ${studentState.metrics.repeatedErrors.length}.`,
+      metrics_snapshot: {
+        score: finalScore,
+        maxScore: assignment.max_score || 100,
+        avgScore: studentState.metrics.recentScoreAvg,
+        scoreTrend: studentState.metrics.scoreTrend,
+        momentum: progress ? Number(progress.momentum_score) : null,
+        questsGenerated: generatedQuests.length,
+      },
+      trigger_source: "submission",
+    });
 
     return new Response(
       JSON.stringify({
