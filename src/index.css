@@ -288,9 +288,11 @@
     radial-gradient(ellipse at 30% 95%, hsl(25 90% 50% / 0.25) 0%, transparent 45%),
     radial-gradient(ellipse at 70% 92%, hsl(35 90% 55% / 0.2) 0%, transparent 40%),
     radial-gradient(ellipse at 50% 85%, hsl(45 80% 55% / 0.1) 0%, transparent 30%),
+    radial-gradient(ellipse at 0% 50%, hsl(15 80% 42% / 0.18) 0%, transparent 35%),
+    radial-gradient(ellipse at 100% 50%, hsl(15 80% 42% / 0.18) 0%, transparent 35%),
     linear-gradient(hsl(var(--border) / 0.15) 1px, transparent 1px),
     linear-gradient(90deg, hsl(var(--border) / 0.15) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 16px 16px, 16px 16px;
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 16px 16px, 16px 16px;
 }
 
 /* CRT flicker */
