@@ -42,7 +42,7 @@ serve(async (req) => {
     const assignment = submission.assignments;
     const studentContent = submission.content || "(file upload - no text content)";
 
-    const systemPrompt = `You are an AI grading assistant for an educational platform called "Momentum Compass". 
+    const systemPrompt = `You are an AI grading assistant for an educational platform called "Atlas". 
 You evaluate student submissions fairly and provide constructive feedback.
 Always return your evaluation using the grade_submission tool.`;
 

@@ -58,7 +58,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
             </motion.span>
             <div>
               <h1 className="font-pixel text-xs md:text-sm tracking-wide text-foreground">
-                MOMENTUM COMPASS
+                ATLAS
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {role === "teacher" ? "🎓 Teacher" : "📚 Student"}

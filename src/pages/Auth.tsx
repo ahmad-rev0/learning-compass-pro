@@ -29,7 +29,7 @@ export default function Auth() {
           >
             🧭
           </motion.span>
-          <h1 className="font-pixel text-sm mt-3 text-foreground">MOMENTUM COMPASS</h1>
+          <h1 className="font-pixel text-sm mt-3 text-foreground">ATLAS</h1>
           <p className="text-muted-foreground text-sm mt-1">Agent × Gamification × Learning</p>
         </div>
 
