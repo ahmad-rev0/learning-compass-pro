@@ -22,13 +22,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRole = async (userId: string, userMeta?: Record<string, unknown>) => {
     const { data } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
-    setRole((data?.role as UserRole) || null);
+    if (data?.role) {
+      setRole(data.role as UserRole);
+    } else if (userMeta?.role) {
+      // Fallback: role not yet in DB (trigger may be pending), use metadata
+      setRole(userMeta.role as UserRole);
+    } else {
+      setRole("student"); // Safe default
+    }
   };
 
   useEffect(() => {
@@ -37,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchRole(session.user.id), 0);
+          setTimeout(() => fetchRole(session.user.id, session.user.user_metadata), 0);
         } else {
           setRole(null);
         }
@@ -49,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchRole(session.user.id);
+        fetchRole(session.user.id, session.user.user_metadata);
       }
       setLoading(false);
     });
