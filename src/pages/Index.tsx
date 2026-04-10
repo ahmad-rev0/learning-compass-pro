@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSimulation } from "@/hooks/useSimulation";
 import { StateIndicator } from "@/components/StateIndicator";
 import { StatsBar } from "@/components/StatsBar";
@@ -11,16 +12,26 @@ import { MomentumChart } from "@/components/MomentumChart";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { motion } from "framer-motion";
+import { SplashScreen } from "@/components/SplashScreen";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Index = () => {
+  const [showSplash, setShowSplash] = useState(true);
   const {
     state, quests, stats, events, agentDecisions, achievements, stateHistory,
     connected, demoMode, start, stop, reset, trigger, isRunning,
   } = useSimulation();
 
   return (
-    <div className="min-h-screen bg-background pixel-grid-bg">
+    <>
+      <AnimatePresence>
+        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      </AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: showSplash ? 0 : 1 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className="min-h-screen bg-background pixel-grid-bg">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
         <div className="container flex items-center justify-between py-3">
