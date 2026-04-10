@@ -83,6 +83,7 @@ export default function StudentUpload() {
       setGrading(false);
       if (result?.graded && result?.grade) {
         setLastFeedback(result.grade);
+        sfx.xp();
         toast.success(`Graded! Score: ${result.grade.score} | +${result.xp_earned} XP ⚡`);
       }
       setContent("");
@@ -95,19 +96,20 @@ export default function StudentUpload() {
     },
     onError: (e: any) => {
       setGrading(false);
+      sfx.error();
       toast.error(e.message);
     },
   });
 
   return (
     <div className="space-y-4">
-      <h2 className="font-pixel text-[10px] text-foreground flex items-center gap-2">
+      <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
         <Upload className="h-4 w-4" /> SUBMIT WORK
       </h2>
 
       <Card className="border-2 border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="font-pixel text-[9px]">📤 SUBMIT FOR AI GRADING</CardTitle>
+          <CardTitle className="font-pixel text-[10px]">📤 SUBMIT FOR AI GRADING</CardTitle>
           <p className="text-sm text-muted-foreground">
             Submit your work and get instant AI-powered feedback, XP, and personalized quests!
           </p>
