@@ -299,7 +299,7 @@
     radial-gradient(ellipse at 50% 85%, hsl(45 80% 55% / 0.1) 0%, transparent 30%),
     radial-gradient(ellipse at 0% 50%, hsl(15 80% 42% / 0.18) 0%, transparent 35%),
     radial-gradient(ellipse at 100% 50%, hsl(15 80% 42% / 0.18) 0%, transparent 35%);
-  animation: fire-pulse 4s ease-in-out infinite;
+  animation: fire-pulse 12s ease-in-out infinite;
 }
 
 @keyframes fire-pulse {
