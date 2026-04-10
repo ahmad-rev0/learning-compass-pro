@@ -10,6 +10,7 @@ import { AchievementsPanel } from "@/components/AchievementsPanel";
 import { MomentumChart } from "@/components/MomentumChart";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { motion } from "framer-motion";
 
 const Index = () => {
@@ -51,6 +52,7 @@ const Index = () => {
                 {stats.motivation}
               </motion.p>
             )}
+            <ThemeToggle />
             <Badge
               variant={connected ? "default" : demoMode ? "outline" : "destructive"}
               className="font-pixel text-[7px]"
