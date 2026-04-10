@@ -281,6 +281,17 @@
   background-size: 16px 16px;
 }
 
+/* Dark mode fire glow */
+.dark .pixel-grid-bg {
+  background-image:
+    radial-gradient(ellipse at 50% 100%, hsl(15 80% 45% / 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 90%, hsl(30 90% 50% / 0.08) 0%, transparent 40%),
+    radial-gradient(ellipse at 80% 95%, hsl(40 85% 55% / 0.06) 0%, transparent 35%),
+    linear-gradient(hsl(var(--border) / 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--border) / 0.15) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 16px 16px, 16px 16px;
+}
+
 /* CRT flicker */
 @keyframes crt-flicker {
   0% { opacity: 0.97; }
