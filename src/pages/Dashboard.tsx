@@ -1,12 +1,30 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function Dashboard() {
+const TEACHER_NAV = [
+  { to: "/teacher/courses", icon: BookOpen, label: "COURSES" },
+  { to: "/teacher/assignments", icon: FileText, label: "ASSIGNMENTS" },
+  { to: "/teacher/students", icon: Users, label: "STUDENTS" },
+  { to: "/teacher/submissions", icon: Inbox, label: "SUBMISSIONS" },
+  { to: "/teacher/analytics", icon: BarChart3, label: "ANALYTICS" },
+];
+
+const STUDENT_NAV = [
+  { to: "/student/assignments", icon: FileText, label: "ASSIGNMENTS" },
+  { to: "/student/progress", icon: TrendingUp, label: "PROGRESS" },
+  { to: "/student/quests", icon: Swords, label: "QUESTS" },
+  { to: "/student/upload", icon: Upload, label: "UPLOAD" },
+  { to: "/student/achievements", icon: Trophy, label: "ACHIEVEMENTS" },
+];
+
+export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const { user, role, loading, signOut } = useAuth();
+  const location = useLocation();
 
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
@@ -16,6 +34,14 @@ export default function Dashboard() {
         <p className="text-muted-foreground font-pixel text-[9px]">LOADING ROLE...</p>
       </div>
     );
+  }
+
+  const nav = role === "teacher" ? TEACHER_NAV : STUDENT_NAV;
+  const defaultRoute = role === "teacher" ? "/teacher/courses" : "/student/assignments";
+
+  // Redirect /dashboard to the first nav item
+  if (location.pathname === "/dashboard") {
+    return <Navigate to={defaultRoute} replace />;
   }
 
   return (
@@ -34,8 +60,8 @@ export default function Dashboard() {
               <h1 className="font-pixel text-[10px] md:text-xs tracking-wide text-foreground">
                 MOMENTUM COMPASS
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                {role === "teacher" ? "🎓 Teacher Dashboard" : "📚 Student Dashboard"}
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {role === "teacher" ? "🎓 Teacher" : "📚 Student"}
               </p>
             </div>
           </div>
@@ -46,76 +72,37 @@ export default function Dashboard() {
             </Button>
           </div>
         </div>
+
+        {/* Nav tabs */}
+        <div className="container pb-0">
+          <nav className="flex gap-1 overflow-x-auto scrollbar-hide -mb-px">
+            {nav.map(({ to, icon: Icon, label }) => {
+              const active = location.pathname === to;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-2 font-pixel text-[7px] border-b-2 transition-colors whitespace-nowrap",
+                    active
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </header>
 
       <main className="container py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">{role === "teacher" ? "🎓" : "📚"}</span>
-            <div>
-              <h2 className="font-pixel text-[10px] text-foreground">
-                WELCOME, {user.email?.split("@")[0]?.toUpperCase()}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {role === "teacher"
-                  ? "Manage your courses, assignments, and track student progress"
-                  : "View assignments, submit work, and track your learning journey"}
-              </p>
-            </div>
-          </div>
-
-          {role === "teacher" ? <TeacherDashboard /> : <StudentDashboard />}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          {children}
         </motion.div>
       </main>
     </div>
-  );
-}
-
-function TeacherDashboard() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <DashCard emoji="📖" title="MY COURSES" desc="Create and manage courses" count={0} />
-      <DashCard emoji="📝" title="ASSIGNMENTS" desc="Create and review assignments" count={0} />
-      <DashCard emoji="📊" title="ANALYTICS" desc="Student progress & gamification stats" />
-      <DashCard emoji="👥" title="STUDENTS" desc="Manage enrolled students" count={0} />
-      <DashCard emoji="📬" title="SUBMISSIONS" desc="Review student submissions" count={0} />
-      <DashCard emoji="🏆" title="LEADERBOARD" desc="Class-wide gamification rankings" />
-    </div>
-  );
-}
-
-function StudentDashboard() {
-  return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      <DashCard emoji="📖" title="MY COURSES" desc="View enrolled courses" count={0} />
-      <DashCard emoji="📝" title="ASSIGNMENTS" desc="View and complete assignments" count={0} />
-      <DashCard emoji="🚀" title="MY PROGRESS" desc="XP, level, streaks, and momentum" />
-      <DashCard emoji="⚔" title="QUESTS" desc="Active gamification quests" count={0} />
-      <DashCard emoji="📤" title="UPLOAD WORK" desc="Submit your own work for gamified learning" />
-      <DashCard emoji="🏆" title="ACHIEVEMENTS" desc="Badges and milestones earned" />
-    </div>
-  );
-}
-
-function DashCard({ emoji, title, desc, count }: { emoji: string; title: string; desc: string; count?: number }) {
-  return (
-    <Card className="border-2 border-border hover:border-primary/50 transition-colors cursor-pointer">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">{emoji}</span>
-          <span className="font-pixel text-[9px] text-foreground">{title}</span>
-          {count !== undefined && (
-            <span className="ml-auto font-pixel text-[8px] text-muted-foreground">{count}</span>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{desc}</p>
-      </CardContent>
-    </Card>
   );
 }
