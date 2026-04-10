@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { sfx } from "@/lib/retroSfx";
 
 const BOOT_LINES = [
-  { text: "MOMENTUM COMPASS v1.0", delay: 0 },
+  { text: "ATLAS v1.0", delay: 0 },
   { text: "© 2025 HACKATHON STUDIOS", delay: 400 },
   { text: "", delay: 700 },
   { text: "CHECKING MEMORY......OK", delay: 900 },

@@ -1,5 +1,5 @@
 /**
- * API client for the Momentum Compass backend.
+ * API client for the Atlas backend.
  * Uses VITE_API_URL env var, falls back to localhost for dev.
  */
 

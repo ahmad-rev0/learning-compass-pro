@@ -45,7 +45,7 @@ const Index = () => {
             </motion.span>
             <div>
               <h1 className="font-pixel text-[10px] md:text-xs tracking-wide text-foreground">
-                MOMENTUM COMPASS
+                ATLAS
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 Agent × Gamification × Exa AI
@@ -133,7 +133,7 @@ const Index = () => {
       <footer className="border-t-3 border-border bg-card/50 py-4 mt-8">
         <div className="container flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span>🧭 Momentum Compass</span>
+            <span>🧭 Atlas</span>
             <span className="text-border">|</span>
             <span>Hackathon Project</span>
           </div>
