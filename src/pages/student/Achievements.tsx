@@ -255,7 +255,7 @@ export default function StudentAchievements() {
                       {badge.emoji}
                     </motion.span>
                     <p className="font-pixel text-[9px] text-foreground mt-1">{badge.name}</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{badge.desc}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{badge.desc}</p>
                     {isUnlocked ? (
                       <p className="font-pixel text-[7px] text-warning mt-1">✓ UNLOCKED</p>
                     ) : (
