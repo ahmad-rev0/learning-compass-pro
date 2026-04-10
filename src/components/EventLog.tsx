@@ -15,11 +15,11 @@ const stateIcon: Record<string, string> = {
   double_trouble: "🔥",
 };
 
-const stateTextColor: Record<string, string> = {
-  normal: "text-muted-foreground",
-  micro_stuck: "text-warning",
-  momentum_dip: "text-accent",
-  double_trouble: "text-destructive",
+const stateBg: Record<string, string> = {
+  normal: "",
+  micro_stuck: "bg-warning/5",
+  momentum_dip: "bg-accent/5",
+  double_trouble: "bg-destructive/5",
 };
 
 export function EventLog({ events }: EventLogProps) {
@@ -32,21 +32,29 @@ export function EventLog({ events }: EventLogProps) {
   return (
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">📋 Event Log</CardTitle>
+        <CardTitle className="flex items-center justify-between text-lg">
+          <div className="flex items-center gap-2">
+            <span>📋</span> Live Event Stream
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground">{events.length} events</span>
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 p-0">
-        <ScrollArea className="h-[320px] px-6">
+        <ScrollArea className="h-[280px] px-6">
           {events.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">Waiting for events…</p>
           )}
           {events.map((e, i) => (
-            <div key={i} className={cn("flex gap-2 border-b border-border/50 py-2 font-mono text-xs", stateTextColor[e.state])}>
-              <span className="w-8 shrink-0 text-right text-muted-foreground">#{e.tick}</span>
-              <span className="w-5 shrink-0 text-center">{stateIcon[e.state]}</span>
-              <span className="shrink-0 text-muted-foreground">{e.topic}</span>
-              {e.error_type && <span className="text-destructive">ERR:{e.error_type}</span>}
-              {e.quiz_score != null && <span className="text-accent">Q:{e.quiz_score.toFixed(0)}</span>}
-              {e.quest_generated && <span className="text-primary">→ {e.quest_generated}</span>}
+            <div key={i} className={cn(
+              "flex items-center gap-2 border-b border-border/30 py-1.5 font-mono text-[11px]",
+              stateBg[e.state],
+            )}>
+              <span className="w-7 shrink-0 text-right text-muted-foreground/60">#{e.tick}</span>
+              <span className="w-4 shrink-0 text-center">{stateIcon[e.state]}</span>
+              <span className="w-24 shrink-0 truncate text-muted-foreground">{e.topic}</span>
+              {e.error_type && <span className="rounded bg-destructive/10 px-1 text-destructive">{e.error_type}</span>}
+              {e.quiz_score != null && <span className="rounded bg-accent/10 px-1 text-accent">Q:{e.quiz_score.toFixed(0)}</span>}
+              {e.quest_generated && <span className="truncate rounded bg-primary/10 px-1 text-primary">→ {e.quest_generated}</span>}
             </div>
           ))}
           <div ref={bottomRef} />
