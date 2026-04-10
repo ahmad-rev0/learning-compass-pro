@@ -48,6 +48,8 @@ const App = () => (
             <Route path="/student/quests" element={<DashboardLayout><StudentQuests /></DashboardLayout>} />
             <Route path="/student/upload" element={<DashboardLayout><StudentUpload /></DashboardLayout>} />
             <Route path="/student/achievements" element={<DashboardLayout><StudentAchievements /></DashboardLayout>} />
+            <Route path="/student/agent" element={<DashboardLayout><StudentAgentDashboard /></DashboardLayout>} />
+            <Route path="/student/study-plan" element={<DashboardLayout><StudentStudyPlan /></DashboardLayout>} />
 
             <Route path="/simulation" element={<Index />} />
             <Route path="*" element={<NotFound />} />
