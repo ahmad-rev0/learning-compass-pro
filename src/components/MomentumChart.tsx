@@ -13,35 +13,35 @@ const stateValues: Record<string, number> = {
 };
 
 const stateColors: Record<string, string> = {
-  normal: "bg-success",
+  normal: "bg-primary",
   micro_stuck: "bg-warning",
   momentum_dip: "bg-accent",
   double_trouble: "bg-destructive",
 };
 
 export function MomentumChart({ stateHistory }: MomentumChartProps) {
-  const last30 = stateHistory.slice(-40);
+  const last40 = stateHistory.slice(-40);
 
   return (
-    <Card>
+    <Card className="pixel-card">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <span>📈</span> State Timeline
+        <CardTitle className="font-pixel text-[9px] flex items-center gap-2">
+          📈 STATE TIMELINE
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {last30.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">No state changes yet</p>
+        {last40.length === 0 ? (
+          <p className="py-4 text-center text-muted-foreground">No state data yet...</p>
         ) : (
           <div className="space-y-3">
-            {/* Bar chart */}
-            <div className="flex items-end gap-[2px] h-20">
-              {last30.map((s, i) => {
+            {/* Pixel bar chart */}
+            <div className="flex items-end gap-[2px] h-20 border-b-2 border-l-2 border-border p-1">
+              {last40.map((s, i) => {
                 const height = ((stateValues[s.state] + 1) / 4) * 100;
                 return (
                   <div
                     key={i}
-                    className={cn("flex-1 rounded-t-sm transition-all", stateColors[s.state])}
+                    className={cn("flex-1 transition-all", stateColors[s.state])}
                     style={{ height: `${height}%`, minWidth: '3px' }}
                     title={`Tick ${s.tick}: ${s.state}`}
                   />
@@ -49,11 +49,11 @@ export function MomentumChart({ stateHistory }: MomentumChartProps) {
               })}
             </div>
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 text-[10px]">
+            <div className="flex flex-wrap gap-3">
               {Object.entries(stateColors).map(([state, color]) => (
-                <div key={state} className="flex items-center gap-1">
-                  <div className={cn("h-2 w-2 rounded-full", color)} />
-                  <span className="text-muted-foreground">{state.replace("_", " ")}</span>
+                <div key={state} className="flex items-center gap-1.5">
+                  <div className={cn("h-3 w-3 border border-border", color)} />
+                  <span className="text-xs text-muted-foreground">{state.replace("_", " ")}</span>
                 </div>
               ))}
             </div>

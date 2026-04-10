@@ -14,8 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Space Grotesk", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        pixel: ['"Press Start 2P"', "cursive"],
+        retro: ["VT323", "monospace"],
+        mono: ["VT323", "monospace"],
+        sans: ["VT323", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",

@@ -14,78 +14,76 @@ interface ControlsPanelProps {
 
 export function ControlsPanel({ isRunning, connected, demoMode, onStart, onStop, onReset, onTrigger }: ControlsPanelProps) {
   return (
-    <Card>
+    <Card className="pixel-card">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-lg">
-          <div className="flex items-center gap-2">
-            <span>🎮</span> Agent Controls
-          </div>
-          {demoMode && <Badge variant="outline" className="text-[10px] text-accent">Demo</Badge>}
+        <CardTitle className="font-pixel text-[9px] flex items-center justify-between">
+          <div className="flex items-center gap-2">🎮 CONTROLS</div>
+          {demoMode && <Badge variant="outline" className="font-pixel text-[7px] text-accent">DEMO</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Simulation controls */}
         <div>
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Simulation</p>
+          <p className="font-pixel text-[7px] text-muted-foreground mb-2">SIMULATION</p>
           <div className="flex flex-wrap gap-2">
-            <Button onClick={onStart} disabled={isRunning} size="sm" className="gap-1.5">
-              <span>▶</span> Start
+            <Button onClick={onStart} disabled={isRunning} size="sm" className="font-pixel text-[8px] gap-1.5">
+              ► START
             </Button>
-            <Button onClick={onStop} disabled={!isRunning} variant="secondary" size="sm" className="gap-1.5">
-              <span>⏸</span> Stop
+            <Button onClick={onStop} disabled={!isRunning} variant="secondary" size="sm" className="font-pixel text-[8px] gap-1.5">
+              ❚❚ STOP
             </Button>
-            <Button onClick={onReset} variant="outline" size="sm" className="gap-1.5">
-              <span>↺</span> Reset
+            <Button onClick={onReset} variant="outline" size="sm" className="font-pixel text-[8px] gap-1.5">
+              ↺ RESET
             </Button>
           </div>
         </div>
 
-        {/* Force trigger */}
+        {/* Force triggers */}
         <div>
-          <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Force Agent Trigger</p>
+          <p className="font-pixel text-[7px] text-muted-foreground mb-2">FORCE TRIGGER</p>
           <div className="grid grid-cols-1 gap-2">
             <Button
               onClick={() => onTrigger("micro_stuck")}
               variant="outline"
               size="sm"
-              className="justify-start gap-2 border-warning/30 text-warning hover:bg-warning/10"
+              className="justify-start gap-2 border-warning/30 text-warning hover:bg-warning/10 text-sm"
             >
               ⚠️ Micro-Stuck
-              <span className="ml-auto text-[10px] opacity-60">+30 XP quest</span>
+              <span className="ml-auto font-pixel text-[7px] opacity-60">+30 XP</span>
             </Button>
             <Button
               onClick={() => onTrigger("momentum_dip")}
               variant="outline"
               size="sm"
-              className="justify-start gap-2 border-accent/30 text-accent hover:bg-accent/10"
+              className="justify-start gap-2 border-accent/30 text-accent hover:bg-accent/10 text-sm"
             >
               📉 Momentum Dip
-              <span className="ml-auto text-[10px] opacity-60">+50 XP quest</span>
+              <span className="ml-auto font-pixel text-[7px] opacity-60">+50 XP</span>
             </Button>
             <Button
               onClick={() => onTrigger("double_trouble")}
               variant="outline"
               size="sm"
-              className="justify-start gap-2 border-destructive/30 text-destructive hover:bg-destructive/10"
+              className="justify-start gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 text-sm"
             >
               🔥 Double Trouble
-              <span className="ml-auto text-[10px] opacity-60">+100 XP quest</span>
+              <span className="ml-auto font-pixel text-[7px] opacity-60">+100 XP</span>
             </Button>
           </div>
         </div>
 
-        {/* Connection info */}
-        <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Connection</p>
+        {/* Connection */}
+        <div className="border-2 border-border bg-muted/30 p-3">
+          <p className="font-pixel text-[7px] text-muted-foreground">CONNECTION</p>
           <div className="mt-1.5 flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${connected ? "bg-success" : demoMode ? "bg-accent" : "bg-destructive"}`} />
-            <span className="text-xs text-foreground">
-              {connected ? "Backend connected" : demoMode ? "Demo mode (client-side)" : "Disconnected"}
+            <div className={`h-2 w-2 ${connected ? "bg-primary" : demoMode ? "bg-accent" : "bg-destructive"}`} />
+            <span className="text-sm text-foreground">
+              {connected ? "Backend online" : demoMode ? "Demo mode (local)" : "Disconnected"}
             </span>
           </div>
           {!connected && (
-            <p className="mt-1.5 text-[10px] text-muted-foreground">
-              Backend: set <code className="font-mono text-accent">VITE_API_URL</code>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Set <code className="text-accent">VITE_API_URL</code> to connect
             </p>
           )}
         </div>

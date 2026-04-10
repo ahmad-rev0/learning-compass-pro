@@ -15,35 +15,35 @@ export function MetricsPanel({ metrics }: MetricsPanelProps) {
   const studyDanger = metrics.study_time_trend <= -15;
 
   return (
-    <Card>
+    <Card className="pixel-card">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <span>📊</span> Live Metrics
+        <CardTitle className="font-pixel text-[9px] flex items-center gap-2">
+          📊 LIVE METRICS
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <MetricGauge
-          label="Error Rate"
+      <CardContent className="space-y-4">
+        <PixelGauge
+          label="BUG RATE"
           value={metrics.error_count_last_10}
           max={10}
-          unit="errors"
+          display={`${metrics.error_count_last_10} bugs`}
           danger={errorDanger}
           icon="🐛"
         />
-        <MetricGauge
-          label="Quiz Average"
+        <PixelGauge
+          label="QUIZ AVG"
           value={metrics.avg_quiz_score_last_3}
           max={100}
-          unit="%"
+          display={`${metrics.avg_quiz_score_last_3.toFixed(0)}%`}
           danger={quizDanger}
           icon="📝"
           invert
         />
-        <MetricGauge
-          label="Study Trend"
+        <PixelGauge
+          label="STUDY TREND"
           value={Math.max(0, metrics.study_time_trend + 30)}
           max={60}
-          unit={`${metrics.study_time_trend > 0 ? "+" : ""}${metrics.study_time_trend} min`}
+          display={`${metrics.study_time_trend > 0 ? "+" : ""}${metrics.study_time_trend} min`}
           danger={studyDanger}
           icon="⏱"
           invert
@@ -51,13 +51,13 @@ export function MetricsPanel({ metrics }: MetricsPanelProps) {
 
         {metrics.last_error && (
           <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-3 rounded-lg border border-destructive/20 bg-destructive/5 p-3"
+            initial={{ x: -10, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="mt-3 border-2 border-destructive/30 bg-destructive/10 p-3"
           >
-            <p className="text-[10px] font-medium uppercase tracking-wider text-destructive">Latest Error</p>
-            <p className="mt-1 font-mono text-xs text-foreground">{metrics.last_error.type}</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground leading-relaxed">{metrics.last_error.msg}</p>
+            <p className="font-pixel text-[7px] text-destructive">!! LATEST ERROR</p>
+            <p className="mt-1 text-base text-foreground">{metrics.last_error.type}</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{metrics.last_error.msg}</p>
           </motion.div>
         )}
       </CardContent>
@@ -65,29 +65,32 @@ export function MetricsPanel({ metrics }: MetricsPanelProps) {
   );
 }
 
-function MetricGauge({ label, value, max, unit, danger, icon, invert }: {
-  label: string; value: number; max: number; unit: string; danger: boolean; icon: string; invert?: boolean;
+function PixelGauge({ label, value, max, display, danger, icon, invert }: {
+  label: string; value: number; max: number; display: string; danger: boolean; icon: string; invert?: boolean;
 }) {
   const pct = Math.min((value / max) * 100, 100);
-  const displayDanger = invert ? !danger : danger;
+  const showDanger = invert ? !danger : danger;
+  const barColor = showDanger ? "hp-red" : "hp-green";
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
           {icon} {label}
         </span>
-        <span className={cn("text-xs font-mono font-bold", danger ? "text-destructive" : "text-foreground")}>
-          {typeof value === "number" && unit !== "%" && !unit.includes("min") ? value : ""}
-          {unit.includes("min") || unit === "%" ? `${value.toFixed(unit === "%" ? 1 : 0)}` : ""}
-          {unit !== "%" && !unit.includes("min") && !unit.includes("+") && !unit.includes("-") ? ` ${unit}` : ""}
-          {(unit.includes("min") || unit.includes("+") || unit.includes("-")) ? ` ${unit.split(" ").pop()}` : ""}
-          {unit === "%" ? "%" : ""}
-        </span>
+        <motion.span
+          key={display}
+          initial={danger ? { x: [-2, 2, -2, 0] } : {}}
+          animate={danger ? { x: [-1, 1, -1, 0] } : {}}
+          transition={{ duration: 0.3 }}
+          className={cn("font-pixel text-[9px]", danger ? "text-destructive" : "text-foreground")}
+        >
+          {display}
+        </motion.span>
       </div>
-      <div className="h-2 w-full rounded-full bg-muted">
+      <div className="hp-bar">
         <motion.div
-          className={cn("h-full rounded-full transition-colors", displayDanger ? "bg-destructive" : "bg-primary")}
+          className={`hp-bar-fill ${barColor}`}
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ duration: 0.5 }}

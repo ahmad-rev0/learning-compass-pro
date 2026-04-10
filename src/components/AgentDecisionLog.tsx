@@ -22,64 +22,62 @@ const stateLabels: Record<string, string> = {
 
 export function AgentDecisionLog({ decisions }: AgentDecisionLogProps) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col pixel-card">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <span>🤖</span> Agent Decisions
-          <Badge variant="outline" className="text-[10px] text-muted-foreground">Autonomous</Badge>
+        <CardTitle className="font-pixel text-[9px] flex items-center gap-2">
+          🤖 AGENT LOG
+          <Badge variant="outline" className="font-pixel text-[7px] text-muted-foreground">AUTO</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 p-0">
-        <ScrollArea className="h-[400px] px-6 pb-4">
+        <ScrollArea className="h-[400px] px-4 pb-4">
           {decisions.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">Agent monitoring… No interventions yet.</p>
+            <p className="py-8 text-center text-muted-foreground">
+              Agent monitoring... No interventions yet. ▌
+            </p>
           )}
           <AnimatePresence mode="popLayout">
             {decisions.map((d) => (
               <motion.div
                 key={d.id}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0 }}
                 layout
-                className={`mb-3 rounded-lg border border-border/50 border-l-4 p-4 ${stateColors[d.state] || ""}`}
+                className={`mb-3 border-2 border-border border-l-4 p-3 ${stateColors[d.state] || ""}`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <Badge variant="outline" className="text-[10px]">{stateLabels[d.state]}</Badge>
-                  <span className="text-[10px] text-muted-foreground font-mono">
+                  <Badge variant="outline" className="font-pixel text-[7px]">{stateLabels[d.state]}</Badge>
+                  <span className="text-xs text-muted-foreground">
                     {new Date(d.timestamp).toLocaleTimeString()}
                   </span>
                 </div>
 
                 <div className="mt-2 space-y-2">
-                  {/* Reasoning */}
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Reasoning</p>
-                    <p className="mt-0.5 text-xs text-foreground leading-relaxed">{d.reasoning}</p>
+                    <p className="font-pixel text-[7px] text-muted-foreground">REASONING</p>
+                    <p className="mt-0.5 text-sm text-foreground">{d.reasoning}</p>
                   </div>
 
-                  {/* Action taken */}
                   <div>
-                    <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Action</p>
-                    <p className="mt-0.5 text-xs text-primary leading-relaxed">{d.action}</p>
+                    <p className="font-pixel text-[7px] text-muted-foreground">ACTION</p>
+                    <p className="mt-0.5 text-sm text-primary">{d.action}</p>
                   </div>
 
-                  {/* Exa query */}
-                  <div className="flex items-center gap-2 rounded-md bg-muted/50 px-2 py-1.5">
-                    <span className="text-[10px] text-muted-foreground">Exa Query:</span>
-                    <code className="text-[11px] font-mono text-accent">{d.exaQuery}</code>
+                  <div className="flex items-center gap-2 border border-border bg-muted/50 px-2 py-1.5">
+                    <span className="text-xs text-muted-foreground">Exa:</span>
+                    <code className="text-sm text-accent">{d.exaQuery}</code>
                   </div>
 
-                  {/* Confidence */}
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground">Confidence:</span>
-                    <div className="h-1.5 w-20 rounded-full bg-muted">
+                    <span className="text-xs text-muted-foreground">Confidence:</span>
+                    <div className="hp-bar flex-1">
                       <div
-                        className="h-full rounded-full bg-primary transition-all"
+                        className="hp-bar-fill hp-green"
                         style={{ width: `${d.confidence * 100}%` }}
                       />
                     </div>
-                    <span className="text-[10px] font-mono text-foreground">{(d.confidence * 100).toFixed(0)}%</span>
+                    <span className="font-pixel text-[8px] text-foreground">{(d.confidence * 100).toFixed(0)}%</span>
                   </div>
                 </div>
               </motion.div>

@@ -19,40 +19,43 @@ const Index = () => {
   } = useSimulation();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pixel-grid-bg">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
         <div className="container flex items-center justify-between py-3">
           <div className="flex items-center gap-3">
             <motion.span
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+              animate={{ y: [0, -3, 0] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
               className="text-2xl"
             >
               🧭
             </motion.span>
             <div>
-              <h1 className="text-lg font-bold tracking-tight md:text-xl">
-                Momentum & Stuckness Compass
+              <h1 className="font-pixel text-[10px] md:text-xs tracking-wide text-foreground">
+                MOMENTUM COMPASS
               </h1>
-              <p className="text-[10px] text-muted-foreground md:text-xs">
-                Autonomous Agent × Gamified Learning Recovery × Exa AI
+              <p className="text-sm text-muted-foreground mt-1">
+                Agent × Gamification × Exa AI
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             {stats?.motivation && (
               <motion.p
                 key={stats.motivation}
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="hidden max-w-xs text-right text-xs text-muted-foreground lg:block"
+                className="hidden max-w-xs text-right text-sm text-muted-foreground lg:block"
               >
                 {stats.motivation}
               </motion.p>
             )}
-            <Badge variant={connected ? "default" : demoMode ? "outline" : "destructive"} className="text-[10px]">
-              {connected ? "● API" : demoMode ? "◉ Demo" : "○ Off"}
+            <Badge
+              variant={connected ? "default" : demoMode ? "outline" : "destructive"}
+              className="font-pixel text-[7px]"
+            >
+              {connected ? "► API" : demoMode ? "◉ DEMO" : "○ OFF"}
             </Badge>
           </div>
         </div>
@@ -60,7 +63,6 @@ const Index = () => {
 
       {/* Dashboard */}
       <main className="container space-y-4 py-4">
-        {/* State Indicator */}
         <StateIndicator
           state={state?.state || "normal"}
           topic={state?.metrics?.current_topic || "—"}
@@ -70,20 +72,17 @@ const Index = () => {
           tickCount={state?.metrics?.total_ticks || 0}
         />
 
-        {/* XP Stats Row */}
         <StatsBar stats={stats} />
 
-        {/* Main content area */}
         <div className="grid gap-4 xl:grid-cols-4">
-          {/* Left: Agent + Quests (2 cols) */}
           <div className="space-y-4 xl:col-span-2">
             <Tabs defaultValue="agent" className="w-full">
-              <TabsList className="w-full">
-                <TabsTrigger value="agent" className="flex-1 gap-1.5">
-                  🤖 Agent Decisions
+              <TabsList className="w-full border-2 border-border bg-card">
+                <TabsTrigger value="agent" className="flex-1 gap-1.5 font-pixel text-[8px]">
+                  🤖 AGENT
                 </TabsTrigger>
-                <TabsTrigger value="quests" className="flex-1 gap-1.5">
-                  ⚔️ Quests
+                <TabsTrigger value="quests" className="flex-1 gap-1.5 font-pixel text-[8px]">
+                  ⚔ QUESTS
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="agent" className="mt-3">
@@ -94,14 +93,11 @@ const Index = () => {
               </TabsContent>
             </Tabs>
 
-            {/* Event stream */}
             <EventLog events={events} />
           </div>
 
-          {/* Right sidebar (2 cols) */}
           <div className="space-y-4 xl:col-span-2">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-2">
-              {/* Controls */}
               <ControlsPanel
                 isRunning={isRunning}
                 connected={connected}
@@ -111,33 +107,29 @@ const Index = () => {
                 onReset={reset}
                 onTrigger={trigger}
               />
-              {/* Metrics */}
               <MetricsPanel metrics={state?.metrics || null} />
             </div>
 
-            {/* State Timeline */}
             <MomentumChart stateHistory={stateHistory} />
-
-            {/* Achievements */}
             <AchievementsPanel achievements={achievements} />
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/30 bg-card/30 py-4">
-        <div className="container flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted-foreground">
+      <footer className="border-t-3 border-border bg-card/50 py-4 mt-8">
+        <div className="container flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>🧭 Momentum Compass</span>
-            <span>•</span>
+            <span className="text-border">|</span>
             <span>Hackathon Project</span>
           </div>
           <div className="flex items-center gap-3">
             <span>Powered by: <span className="text-primary">Exa AI</span></span>
-            <span>•</span>
-            <span>State Machine: <span className="text-accent">4-state detection</span></span>
-            <span>•</span>
-            <span>Gamification: <span className="text-warning">XP + Streaks + Quests</span></span>
+            <span className="text-border">|</span>
+            <span>Detection: <span className="text-accent">4-state machine</span></span>
+            <span className="text-border">|</span>
+            <span>Rewards: <span className="text-warning">XP + Quests + Badges</span></span>
           </div>
         </div>
       </footer>
