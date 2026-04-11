@@ -133,11 +133,14 @@ export function WizardGuide() {
         animate={{
           opacity: 1,
           scale: 1,
-          x: wizardPos.x,
-          y: wizardPos.y,
         }}
         transition={{ type: "spring", stiffness: 100, damping: 18 }}
-        style={{ width: WIZARD_W, height: WIZARD_H }}
+        style={{
+          width: WIZARD_W,
+          height: WIZARD_H,
+          left: wizardPos.x,
+          top: wizardPos.y,
+        }}
       >
         {/* Dismiss X */}
         <button
