@@ -556,7 +556,7 @@ function QuestScene({
           index={i}
           onSelect={onSelect}
           isSelected={selectedId === node.id}
-          totalNodes={nodes.length}
+          _totalNodes={nodes.length}
         />
       ))}
 
