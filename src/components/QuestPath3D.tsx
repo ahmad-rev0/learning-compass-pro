@@ -1,6 +1,6 @@
 import { useRef, useState, useMemo, Suspense, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Text, Float, OrbitControls, DepthOfField, EffectComposer, Bloom } from "@react-three/drei";
+import { Text, Float, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 interface QuestNode {
