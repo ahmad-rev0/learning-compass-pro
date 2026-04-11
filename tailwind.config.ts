@@ -14,10 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        pixel: ['"Silkscreen"', "monospace"],
-        retro: ['"Silkscreen"', "monospace"],
-        mono: ['"Silkscreen"', "monospace"],
-        sans: ['"Silkscreen"', "monospace"],
+        pixel: ['"Jersey 10"', "monospace"],
+        retro: ['"Jersey 10"', "monospace"],
+        mono: ['"Jersey 10"', "monospace"],
+        sans: ['"Jersey 10"', "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",

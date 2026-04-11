@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Jersey+10&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
 
 @layer base {
   :root {
@@ -30,53 +30,46 @@
     --destructive: 0 60% 48%;
     --destructive-foreground: 40 30% 96%;
 
-    --warning: 38 85% 50%;
+    --warning: 42 96% 55%;
     --warning-foreground: 30 20% 12%;
 
-    --success: 140 55% 38%;
+    --success: 140 55% 42%;
     --success-foreground: 40 30% 96%;
 
-    --border: 35 20% 82%;
-    --input: 35 20% 82%;
+    --border: 32 18% 72%;
+    --input: 32 18% 72%;
     --ring: 140 55% 38%;
 
-    --radius: 0.25rem;
+    --radius: 0rem;
 
-    --pixel-shadow: 3px 3px 0px hsl(35 20% 75%);
-    --pixel-shadow-sm: 2px 2px 0px hsl(35 20% 75%);
-    --pixel-glow-green: 0 0 8px hsl(140 55% 38% / 0.3), 0 0 16px hsl(140 55% 38% / 0.15);
-    --pixel-glow-red: 0 0 8px hsl(0 60% 48% / 0.3), 0 0 16px hsl(0 60% 48% / 0.15);
-    --pixel-glow-gold: 0 0 8px hsl(38 85% 50% / 0.3), 0 0 16px hsl(38 85% 50% / 0.15);
-    --pixel-glow-purple: 0 0 8px hsl(270 40% 55% / 0.3), 0 0 16px hsl(270 40% 55% / 0.15);
-
-    --sidebar-background: 38 30% 93%;
-    --sidebar-foreground: 30 15% 35%;
+    --sidebar-background: 38 35% 92%;
+    --sidebar-foreground: 30 20% 18%;
     --sidebar-primary: 140 55% 38%;
     --sidebar-primary-foreground: 40 30% 96%;
-    --sidebar-accent: 35 18% 88%;
-    --sidebar-accent-foreground: 30 15% 35%;
-    --sidebar-border: 35 20% 82%;
+    --sidebar-accent: 35 20% 85%;
+    --sidebar-accent-foreground: 30 20% 18%;
+    --sidebar-border: 32 18% 72%;
     --sidebar-ring: 140 55% 38%;
   }
 
   .dark {
     --background: 240 20% 8%;
-    --foreground: 50 30% 88%;
-    --card: 240 18% 12%;
-    --card-foreground: 50 30% 88%;
-    --popover: 240 18% 12%;
-    --popover-foreground: 50 30% 88%;
+    --foreground: 50 20% 78%;
+    --card: 240 18% 10%;
+    --card-foreground: 50 20% 78%;
+    --popover: 240 18% 10%;
+    --popover-foreground: 50 20% 78%;
     --primary: 140 60% 50%;
     --primary-foreground: 240 20% 8%;
-    --secondary: 240 12% 18%;
+    --secondary: 240 12% 16%;
     --secondary-foreground: 50 20% 78%;
     --muted: 240 12% 16%;
-    --muted-foreground: 50 10% 50%;
+    --muted-foreground: 50 12% 60%;
     --accent: 270 50% 60%;
-    --accent-foreground: 50 30% 95%;
+    --accent-foreground: 240 20% 8%;
     --destructive: 0 65% 55%;
-    --destructive-foreground: 50 30% 95%;
-    --warning: 40 90% 55%;
+    --destructive-foreground: 240 20% 8%;
+    --warning: 45 90% 55%;
     --warning-foreground: 240 20% 8%;
     --success: 140 60% 50%;
     --success-foreground: 240 20% 8%;
@@ -109,16 +102,38 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Silkscreen', monospace;
-    font-size: 10px;
-    line-height: 1.6;
+    font-family: 'Jersey 10', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
     image-rendering: pixelated;
+    text-rendering: optimizeSpeed;
   }
 
   code, pre, .font-mono {
-    font-family: 'Silkscreen', monospace;
+    font-family: 'Jersey 10', monospace;
   }
 }
+
+.dashboard-shell :where(.font-pixel) {
+  letter-spacing: 0.08em;
+}
+
+.dashboard-shell :where(.text-\[7px\], .text-\[8px\]) {
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.dashboard-shell :where(.text-\[9px\], .text-\[10px\], .text-xs) {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dashboard-shell :where(.text-sm) {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 
 /* Pixel-art styled scrollbar */
 ::-webkit-scrollbar {
