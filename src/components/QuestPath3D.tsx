@@ -416,12 +416,19 @@ function Starfield() {
     ref.current.geometry.attributes.position.needsUpdate = true;
   });
 
+  // Disable fog on star material so they're visible behind the scene
+  useEffect(() => {
+    if (ref.current) {
+      (ref.current.material as THREE.PointsMaterial).fog = false;
+    }
+  }, []);
+
   return (
     <points ref={ref}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.12} color="#ffffff" transparent opacity={0.7} sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending} />
+      <pointsMaterial size={0.15} color="#ffffff" transparent opacity={0.8} sizeAttenuation={false} depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
   );
 }
