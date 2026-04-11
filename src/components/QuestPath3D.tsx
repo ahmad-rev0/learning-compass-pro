@@ -15,7 +15,7 @@ interface QuestNode {
 /* ── Mastery-scaled values ── */
 function getMasteryScale(mastery: number) {
   const aggressive = mastery > 0.8;
-  const boost = aggressive ? 2.5 : 1;
+  
   return {
     emissiveIntensity: aggressive ? 1.5 : 0.1 + mastery * 0.9,
     particleCount: Math.floor(aggressive ? 40 : 4 + mastery * 20),
