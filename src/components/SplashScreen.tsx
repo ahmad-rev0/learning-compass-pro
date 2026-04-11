@@ -82,7 +82,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
               </motion.div>
 
               {/* Boot text */}
-              <div className="font-pixel text-[8px] leading-[2] space-y-0 min-h-[180px]">
+              <div className="font-pixel text-sm leading-[2.2] space-y-0 min-h-[280px]">
                 {BOOT_LINES.slice(0, visibleLines).map((line, i) => (
                   <motion.div
                     key={i}
@@ -113,7 +113,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0, 1] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
-                    className="text-center mt-4 font-pixel text-[10px] text-foreground"
+                    className="text-center mt-4 font-pixel text-base text-foreground"
                   >
                     ▶ CLICK ANYWHERE TO START ◀
                   </motion.div>
