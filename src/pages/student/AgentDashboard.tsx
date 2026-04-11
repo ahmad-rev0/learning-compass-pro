@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useDemo } from "@/contexts/DemoContext";
+import { demoAgentLogs } from "@/lib/demoData";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, Eye, Zap, TrendingDown, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
@@ -21,11 +23,13 @@ const STATE_CONFIG: Record<string, { icon: React.ReactNode; color: string; label
 
 export default function AgentDashboard() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const [realtimeLogs, setRealtimeLogs] = useState<any[]>([]);
 
   const { data: logs = [] } = useQuery({
     queryKey: ["agent-logs"],
     queryFn: async () => {
+      if (isDemoMode) return demoAgentLogs;
       const { data, error } = await supabase
         .from("agent_logs")
         .select("*")
@@ -35,12 +39,11 @@ export default function AgentDashboard() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
-  // Realtime subscription
   useEffect(() => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
     const channel = supabase
       .channel("agent-logs-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "agent_logs", filter: `user_id=eq.${user.id}` },
@@ -48,7 +51,7 @@ export default function AgentDashboard() {
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
+  }, [user, isDemoMode]);
 
   const allLogs = [...realtimeLogs, ...logs].reduce((acc: any[], log) => {
     if (!acc.find((l) => l.id === log.id)) acc.push(log);
@@ -64,7 +67,6 @@ export default function AgentDashboard() {
         <Brain className="h-4 w-4" /> AGENT BRAIN
       </h2>
 
-      {/* Current state */}
       <Card className={`border-2 ${cfg.color}`}>
         <CardContent className="py-4">
           <div className="flex items-center gap-3">
@@ -90,7 +92,6 @@ export default function AgentDashboard() {
         </CardContent>
       </Card>
 
-      {/* Decision log */}
       <div className="space-y-2">
         <p className="font-pixel text-[9px] text-accent">🧠 AGENT DECISIONS</p>
         <AnimatePresence>

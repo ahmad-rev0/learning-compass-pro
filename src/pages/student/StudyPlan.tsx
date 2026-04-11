@@ -1,13 +1,14 @@
-import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { demoStudyPlans } from "@/lib/demoData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
-import { BookOpen, ExternalLink, Loader2, Sparkles, CheckCircle, Target } from "lucide-react";
+import { BookOpen, ExternalLink, Loader2, Sparkles, Target } from "lucide-react";
 import { toast } from "sonner";
 import { sfx } from "@/lib/retroSfx";
 
@@ -25,11 +26,13 @@ const DIFFICULTY_EMOJI: Record<string, string> = {
 
 export default function StudentStudyPlan() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const queryClient = useQueryClient();
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ["study-plans"],
     queryFn: async () => {
+      if (isDemoMode) return demoStudyPlans;
       const { data, error } = await supabase
         .from("study_plans")
         .select("*")
@@ -39,11 +42,15 @@ export default function StudentStudyPlan() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const generateMutation = useMutation({
     mutationFn: async () => {
+      if (isDemoMode) {
+        toast.success("New study plan generated! 📚 (Demo)");
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("generate-study-plan", {
         body: { user_id: user!.id },
       });
@@ -52,8 +59,10 @@ export default function StudentStudyPlan() {
       return data;
     },
     onSuccess: () => {
-      sfx.success();
-      toast.success("New study plan generated! 📚");
+      if (!isDemoMode) {
+        sfx.success();
+        toast.success("New study plan generated! 📚");
+      }
       queryClient.invalidateQueries({ queryKey: ["study-plans"] });
     },
     onError: (e: any) => {
@@ -98,7 +107,6 @@ export default function StudentStudyPlan() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {/* Plan header */}
           <Card className="border-2 border-primary/30 bg-primary/5">
             <CardContent className="py-4">
               <div className="flex items-center gap-2 mb-2">
@@ -118,7 +126,6 @@ export default function StudentStudyPlan() {
             </CardContent>
           </Card>
 
-          {/* Agent reasoning */}
           {(activePlan as any).agent_reasoning && (
             <Card className="border border-accent/20 bg-accent/5">
               <CardContent className="py-3">
@@ -128,7 +135,6 @@ export default function StudentStudyPlan() {
             </Card>
           )}
 
-          {/* Daily topics */}
           <div className="space-y-2">
             <p className="font-pixel text-[9px] text-accent">📅 DAILY TOPICS</p>
             {((activePlan.topics as any[]) || []).map((topic: any, i: number) => (
@@ -169,7 +175,6 @@ export default function StudentStudyPlan() {
             ))}
           </div>
 
-          {/* Milestones */}
           {((activePlan.milestones as any[]) || []).length > 0 && (
             <div className="space-y-2">
               <p className="font-pixel text-[9px] text-warning">🎯 MILESTONES</p>

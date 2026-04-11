@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { demoQuests } from "@/lib/demoData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,7 @@ const TYPE_STYLES: Record<string, string> = {
 
 export default function StudentQuests() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const queryClient = useQueryClient();
   const [bouncing, setBouncing] = useState(false);
   const [inactivityMin, setInactivityMin] = useState(2);
@@ -25,7 +28,6 @@ export default function StudentQuests() {
   const lastActivityRef = useRef(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
-  // Track user activity
   const resetActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
     setBouncing(false);
@@ -37,7 +39,6 @@ export default function StudentQuests() {
     return () => events.forEach((e) => window.removeEventListener(e, resetActivity));
   }, [resetActivity]);
 
-  // Check inactivity
   useEffect(() => {
     timerRef.current = setInterval(() => {
       const elapsed = (Date.now() - lastActivityRef.current) / 1000 / 60;
@@ -52,6 +53,7 @@ export default function StudentQuests() {
   const { data: quests = [], isLoading } = useQuery({
     queryKey: ["student-quests"],
     queryFn: async () => {
+      if (isDemoMode) return demoQuests;
       const { data, error } = await supabase
         .from("quests")
         .select("*")
@@ -60,11 +62,15 @@ export default function StudentQuests() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const completeQuest = useMutation({
     mutationFn: async (questId: string) => {
+      if (isDemoMode) {
+        toast.success("Quest completed! +40 XP ⚡ (Demo)");
+        return;
+      }
       const quest = quests.find((q) => q.id === questId);
       if (!quest) throw new Error("Quest not found");
 
@@ -93,9 +99,11 @@ export default function StudentQuests() {
       }
     },
     onSuccess: (_, questId) => {
-      const quest = quests.find((q) => q.id === questId);
-      sfx.success();
-      toast.success(`Quest completed! +${quest?.xp_reward || 0} XP ⚡`);
+      if (!isDemoMode) {
+        const quest = quests.find((q) => q.id === questId);
+        sfx.success();
+        toast.success(`Quest completed! +${quest?.xp_reward || 0} XP ⚡`);
+      }
       queryClient.invalidateQueries({ queryKey: ["student-quests"] });
       queryClient.invalidateQueries({ queryKey: ["student-progress"] });
     },
@@ -124,7 +132,6 @@ export default function StudentQuests() {
         </Button>
       </div>
 
-      {/* Inactivity timer settings */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
@@ -138,14 +145,7 @@ export default function StudentQuests() {
                 <p className="text-xs text-muted-foreground">
                   Quests will bounce after {inactivityMin} min{inactivityMin !== 1 ? "s" : ""} of inactivity
                 </p>
-                <Slider
-                  value={[inactivityMin]}
-                  onValueChange={([v]) => setInactivityMin(v)}
-                  min={1}
-                  max={10}
-                  step={1}
-                  className="w-full"
-                />
+                <Slider value={[inactivityMin]} onValueChange={([v]) => setInactivityMin(v)} min={1} max={10} step={1} className="w-full" />
                 <div className="flex justify-between text-[10px] text-muted-foreground">
                   <span>1 min</span>
                   <span>10 min</span>

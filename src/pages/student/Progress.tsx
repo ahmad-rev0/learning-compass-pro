@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { demoProgress, demoSubmissions } from "@/lib/demoData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { motion } from "framer-motion";
@@ -8,10 +10,12 @@ import { TrendingUp, Zap, Flame, Star, Target } from "lucide-react";
 
 export default function StudentProgress() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
 
   const { data: progress, isLoading } = useQuery({
     queryKey: ["student-progress"],
     queryFn: async () => {
+      if (isDemoMode) return demoProgress;
       const { data, error } = await supabase
         .from("gamification_progress")
         .select("*")
@@ -20,12 +24,13 @@ export default function StudentProgress() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const { data: submissions = [] } = useQuery({
     queryKey: ["student-submissions"],
     queryFn: async () => {
+      if (isDemoMode) return demoSubmissions.map(s => ({ status: s.status, score: s.score }));
       const { data, error } = await supabase
         .from("submissions")
         .select("status, score")
@@ -33,7 +38,7 @@ export default function StudentProgress() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const totalSubmissions = submissions.length;
@@ -80,26 +85,10 @@ export default function StudentProgress() {
 
       {/* Stats grid */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={<Zap className="h-5 w-5 text-warning" />}
-          label="TOTAL XP"
-          value={(progress?.xp || 0).toLocaleString()}
-        />
-        <StatCard
-          icon={<Flame className="h-5 w-5 text-destructive" />}
-          label="STREAK"
-          value={`${progress?.streak_days || 0} days`}
-        />
-        <StatCard
-          icon={<Target className="h-5 w-5 text-primary" />}
-          label="MOMENTUM"
-          value={`${Number(progress?.momentum_score || 50).toFixed(0)}%`}
-        />
-        <StatCard
-          icon={<Star className="h-5 w-5 text-accent" />}
-          label="AVG SCORE"
-          value={avgScore > 0 ? `${avgScore.toFixed(0)}%` : "—"}
-        />
+        <StatCard icon={<Zap className="h-5 w-5 text-warning" />} label="TOTAL XP" value={(progress?.xp || 0).toLocaleString()} />
+        <StatCard icon={<Flame className="h-5 w-5 text-destructive" />} label="STREAK" value={`${progress?.streak_days || 0} days`} />
+        <StatCard icon={<Target className="h-5 w-5 text-primary" />} label="MOMENTUM" value={`${Number(progress?.momentum_score || 50).toFixed(0)}%`} />
+        <StatCard icon={<Star className="h-5 w-5 text-accent" />} label="AVG SCORE" value={avgScore > 0 ? `${avgScore.toFixed(0)}%` : "—"} />
       </div>
 
       {/* Momentum gauge */}
