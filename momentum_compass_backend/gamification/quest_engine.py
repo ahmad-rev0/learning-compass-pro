@@ -24,6 +24,12 @@ QUEST_TEMPLATES = {
         "steps": ["Pause and breathe", "Review {topic} fundamentals", "Fix the {error_type} bug", "Complete a challenge", "Celebrate!"],
         "xp_reward": 100,
     },
+    "sidequest": {
+        "title": "🎈 Explore: {topic}",
+        "description": "Bonus knowledge! Dive into {topic} — a side adventure to broaden your skills.",
+        "steps": ["Read the resource", "Try a hands-on exercise", "Share what you learned"],
+        "xp_reward": 20,
+    },
 }
 
 @dataclass
@@ -42,6 +48,7 @@ class QuestEngine:
             "xp_reward": template["xp_reward"],
             "resource_url": resource_url,
             "state": state,
+            "type": "sidequest" if state == "sidequest" else ("recovery" if state in ("micro_stuck", "double_trouble") else "growth"),
             "status": "active",
             "created_at": now_iso(),
         }
