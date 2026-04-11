@@ -10,20 +10,11 @@ import { ChevronRight, X } from "lucide-react";
  * For each route the wizard might point to, try to find a specific
  * actionable element on the current page first, then fall back to the nav tab.
  */
-function findTargetElement(route: string, currentPath: string): HTMLElement | null {
-  // If we're on the target page, find the first actionable item
-  if (currentPath === route || currentPath.startsWith(route)) {
-    // Try first active quest card, first assignment card, etc.
-    const firstCard =
-      document.querySelector<HTMLElement>("[data-wizard-target] .space-y-2 > div:first-child") ||
-      document.querySelector<HTMLElement>("[data-wizard-target] .space-y-2 > :first-child") ||
-      document.querySelector<HTMLElement>("[data-wizard-target] > .space-y-2 > :first-child");
-
-    if (firstCard) return firstCard;
-  }
-
-  // Fall back to the nav tab for that route
-  return document.querySelector<HTMLElement>(`a[href="${route}"]`);
+function findTargetElement(route: string): HTMLElement | null {
+  // Try the nav tab — always visible and reliably findable
+  const navTab = document.querySelector<HTMLElement>(`a[href="${route}"]`);
+  if (navTab) return navTab;
+  return null;
 }
 
 export function WizardGuide() {
