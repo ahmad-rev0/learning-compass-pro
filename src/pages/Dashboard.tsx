@@ -21,9 +21,9 @@ const TEACHER_NAV = [
 ];
 
 const STUDENT_NAV = [
+  { to: "/student/quests", icon: Swords, label: "QUESTS" },
   { to: "/student/assignments", icon: FileText, label: "ASSIGNMENTS" },
   { to: "/student/progress", icon: TrendingUp, label: "PROGRESS" },
-  { to: "/student/quests", icon: Swords, label: "QUESTS" },
   { to: "/student/upload", icon: Upload, label: "UPLOAD" },
   { to: "/student/achievements", icon: Trophy, label: "ACHIEVEMENTS" },
   { to: "/student/agent", icon: Brain, label: "AGENT" },
@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
   }
 
   const nav = effectiveRole === "teacher" ? TEACHER_NAV : STUDENT_NAV;
-  const defaultRoute = effectiveRole === "teacher" ? "/teacher/courses" : "/student/assignments";
+  const defaultRoute = effectiveRole === "teacher" ? "/teacher/courses" : "/student/quests";
 
   if (location.pathname === "/dashboard") {
     return <Navigate to={defaultRoute} replace />;
