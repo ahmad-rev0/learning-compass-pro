@@ -31,14 +31,14 @@ function Platform({
   index,
   onSelect,
   isSelected,
-  totalNodes,
+  _totalNodes,
 }: {
   node: QuestNode;
   position: [number, number, number];
   index: number;
   onSelect: (id: string) => void;
   isSelected: boolean;
-  totalNodes: number;
+  _totalNodes: number;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
@@ -466,8 +466,7 @@ function CameraController({ nodeCount }: { nodeCount: number }) {
     // Position camera so the lowest (first) platform is at the bottom of the viewport
     // Camera looks slightly upward from a low vantage point
     const baseY = 0.5; // Just above first platform
-    const maxY = nodeCount * 0.7;
-    const targetY = baseY + 0.5;
+    const targetY = 1.0;
     camera.position.set(5, baseY + 2, 8);
     camera.lookAt(0, targetY, -2);
   }, [camera, nodeCount]);
