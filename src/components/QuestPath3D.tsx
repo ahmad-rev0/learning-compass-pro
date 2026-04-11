@@ -213,11 +213,9 @@ function Ladder({ from, to, completed }: { from: [number, number, number]; to: [
     const midPoint = start.clone().add(end).multiplyScalar(0.5);
     const up = dir.clone().normalize();
 
-    // Quaternion to orient cylinder along the direction
     const quat = new THREE.Quaternion();
     quat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
 
-    // Perpendicular vector for rail spacing
     const arbitrary = Math.abs(up.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
     const perp = new THREE.Vector3().crossVectors(up, arbitrary).normalize();
 
@@ -240,7 +238,6 @@ function Ladder({ from, to, completed }: { from: [number, number, number]; to: [
 
   return (
     <group>
-      {/* Two side rails */}
       {[-1, 1].map((side, idx) => {
         const offset = parts.perp.clone().multiplyScalar(side * parts.railSpacing);
         const railPos = parts.midPoint.clone().add(offset);
@@ -251,7 +248,6 @@ function Ladder({ from, to, completed }: { from: [number, number, number]; to: [
           </mesh>
         );
       })}
-      {/* Rungs perpendicular to direction */}
       {parts.rungs.map((rung, i) => {
         const rungQuat = new THREE.Quaternion();
         rungQuat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rung.perpDir);
@@ -386,7 +382,51 @@ function SunlightRays() {
   );
 }
 
-/* ── Stylized Earth Globe — BIGGER, more green ── */
+/* ── Starfield background ── */
+function Starfield() {
+  const ref = useRef<THREE.Points>(null);
+  const starCount = 600;
+
+  const [positions, sizes] = useMemo(() => {
+    const pos = new Float32Array(starCount * 3);
+    const sz = new Float32Array(starCount);
+    for (let i = 0; i < starCount; i++) {
+      // Distribute in a large sphere shell behind the scene
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      const r = 25 + Math.random() * 30;
+      pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      pos[i * 3 + 2] = r * Math.cos(phi);
+      sz[i] = 0.02 + Math.random() * 0.08;
+    }
+    return [pos, sz];
+  }, []);
+
+  useFrame((state) => {
+    if (!ref.current) return;
+    const t = state.clock.elapsedTime;
+    ref.current.rotation.y = t * 0.003;
+    // Twinkle effect
+    const posArr = ref.current.geometry.attributes.position.array as Float32Array;
+    for (let i = 0; i < starCount; i++) {
+      const baseY = positions[i * 3 + 1];
+      posArr[i * 3 + 1] = baseY + Math.sin(t * (1.5 + i * 0.02) + i) * 0.02;
+    }
+    ref.current.geometry.attributes.position.needsUpdate = true;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+      </bufferGeometry>
+      <pointsMaterial size={0.12} color="#ffffff" transparent opacity={0.7} sizeAttenuation depthWrite={false} blending={THREE.AdditiveBlending} />
+    </points>
+  );
+}
+
+/* ── Stylized Earth Globe ── */
 function EarthGlobe() {
   const earthRef = useRef<THREE.Group>(null);
   const atmosphereRef = useRef<THREE.Mesh>(null);
@@ -412,7 +452,6 @@ function EarthGlobe() {
       { lat: -0.1, lon: -2.2, s: 0.65, c: "#6ba56b" },
       { lat: 0.9, lon: -0.8, s: 0.55, c: "#4a8a4a" },
       { lat: -0.8, lon: 1.0, s: 0.5, c: "#5b8c5a" },
-      // Extra green patches
       { lat: 0.35, lon: -0.6, s: 0.75, c: "#4d9040" },
       { lat: -0.15, lon: 1.8, s: 0.85, c: "#3d8a35" },
       { lat: 0.55, lon: 0.9, s: 0.65, c: "#58a555" },
@@ -503,25 +542,64 @@ function CloudPuff({ position, scale, speed }: { position: [number, number, numb
   );
 }
 
-/* ── Camera controller — right-click pan enabled ── */
-function CameraController({ nodeCount }: { nodeCount: number }) {
+/* ── Camera controller — auto-scaling + intro fly-up ── */
+function CameraController({ nodeCount, maxY }: { nodeCount: number; maxY: number }) {
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
+  const introPhase = useRef(0); // 0 = flying up, 1 = done
+  const startTime = useRef(0);
+
   useEffect(() => {
-    const baseY = 0.5;
-    camera.position.set(6, baseY + 3, 10);
-    camera.lookAt(0, 1.0, -2);
-  }, [camera, nodeCount]);
+    // Start camera low, looking at the earth
+    camera.position.set(0, -8, 16);
+    camera.lookAt(0, -5, 0);
+    startTime.current = performance.now();
+    introPhase.current = 0;
+  }, [camera]);
+
+  // Dynamically compute ideal camera position based on trail height
+  const targetPos = useMemo(() => {
+    const trailHeight = Math.max(4, maxY);
+    const midY = trailHeight * 0.35;
+    const distance = Math.max(10, 8 + trailHeight * 0.4);
+    return { x: 6, y: midY + 2, z: distance, targetY: midY - 1 };
+  }, [maxY]);
+
+  useFrame(() => {
+    if (introPhase.current === 0) {
+      const elapsed = (performance.now() - startTime.current) / 1000;
+      const duration = 2.5;
+      const t = Math.min(1, elapsed / duration);
+      // Smooth ease-out cubic
+      const ease = 1 - Math.pow(1 - t, 3);
+
+      camera.position.x = THREE.MathUtils.lerp(0, targetPos.x, ease);
+      camera.position.y = THREE.MathUtils.lerp(-8, targetPos.y, ease);
+      camera.position.z = THREE.MathUtils.lerp(16, targetPos.z, ease);
+
+      const lookY = THREE.MathUtils.lerp(-5, targetPos.targetY, ease);
+      camera.lookAt(0, lookY, -2);
+
+      if (t >= 1) {
+        introPhase.current = 1;
+        if (controlsRef.current) {
+          controlsRef.current.target.set(0, targetPos.targetY, -2);
+          controlsRef.current.update();
+        }
+      }
+    }
+  });
+
   return (
     <OrbitControls
       ref={controlsRef}
       enablePan={true}
       enableZoom={true}
       minDistance={6}
-      maxDistance={22}
+      maxDistance={30}
       maxPolarAngle={Math.PI / 1.8}
       minPolarAngle={Math.PI / 8}
-      target={[0, 2, -2]}
+      target={[0, targetPos.targetY, -2]}
       enableDamping
       dampingFactor={0.05}
       mouseButtons={{
@@ -552,6 +630,8 @@ function QuestScene({
     });
   }, [nodes]);
 
+  const maxY = useMemo(() => Math.max(0, ...positions.map(p => p[1])), [positions]);
+
   const balloonPositions = useMemo<[number, number, number][]>(() => {
     return sideQuests.map((_, i) => {
       const side = i % 2 === 0 ? -1 : 1;
@@ -571,6 +651,7 @@ function QuestScene({
       <spotLight position={[0, 12, 0]} angle={0.5} penumbra={0.8} intensity={0.6} color="#ffd699" castShadow />
       <hemisphereLight color="#ffe8cc" groundColor="#5a4a3a" intensity={0.5} />
 
+      <Starfield />
       <SunlightRays />
       <EarthGlobe />
       <CompassRose />
@@ -592,8 +673,59 @@ function QuestScene({
         <HotAirBalloon key={sq.id} node={sq} position={balloonPositions[i]} index={i} onSelect={onSelect} isSelected={selectedId === sq.id} />
       ))}
 
-      <CameraController nodeCount={nodes.length} />
+      <CameraController nodeCount={nodes.length} maxY={maxY} />
     </>
+  );
+}
+
+/* ── Minimap ── */
+function QuestMinimap({ mainNodes, sideQuestNodes, selectedId, onSelect }: {
+  mainNodes: QuestNode[];
+  sideQuestNodes: QuestNode[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  const allNodes = [...mainNodes, ...sideQuestNodes];
+  return (
+    <div className="absolute right-2 top-12 bottom-12 w-8 flex flex-col items-center z-10 pointer-events-auto">
+      {/* Track line */}
+      <div className="absolute inset-x-1/2 top-0 bottom-0 w-px bg-border/40" />
+      <div className="relative flex flex-col justify-between h-full py-1">
+        {mainNodes.map((node, i) => {
+          const color =
+            node.type === "sidequest" ? "bg-[#f39c12]"
+            : node.status === "completed" ? "bg-[#44ff88]"
+            : node.type === "recovery" ? "bg-[#ff6644]"
+            : "bg-[#bb88ff]";
+          const isActive = selectedId === node.id;
+          return (
+            <button
+              key={node.id}
+              onClick={() => onSelect(node.id)}
+              className={`relative w-3 h-3 rounded-full border transition-all cursor-pointer ${color} ${
+                isActive ? "ring-2 ring-primary scale-150 border-primary" : "border-background/60 hover:scale-125"
+              }`}
+              title={node.title}
+            />
+          );
+        })}
+      </div>
+      {/* Side quest indicators */}
+      {sideQuestNodes.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1 items-center">
+          {sideQuestNodes.map((sq) => (
+            <button
+              key={sq.id}
+              onClick={() => onSelect(sq.id)}
+              className={`text-[8px] leading-none cursor-pointer transition-transform ${selectedId === sq.id ? "scale-150" : "hover:scale-125"}`}
+              title={sq.title}
+            >
+              🎈
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -653,15 +785,16 @@ export function QuestPath3D({
         </div>
       </div>
 
-      <div style={{ height: "480px", width: "100%" }} onContextMenu={(e) => e.preventDefault()}>
-        <Canvas camera={{ position: [6, 3, 10], fov: 42 }} shadows dpr={[1, 1.5]}
+      <div className="relative" style={{ height: "480px", width: "100%" }} onContextMenu={(e) => e.preventDefault()}>
+        <Canvas camera={{ position: [0, -8, 16], fov: 42 }} shadows dpr={[1, 1.5]}
           gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}>
           <Suspense fallback={null}>
-            <color attach="background" args={["#0a1628"]} />
-            <fog attach="fog" args={["#0a1628", 16, 32]} />
+            <color attach="background" args={["#050a18"]} />
+            <fog attach="fog" args={["#050a18", 20, 45]} />
             <QuestScene nodes={mainNodes} sideQuests={sideQuestNodes} selectedId={selectedId} onSelect={setSelectedId} />
           </Suspense>
         </Canvas>
+        <QuestMinimap mainNodes={mainNodes} sideQuestNodes={sideQuestNodes} selectedId={selectedId} onSelect={setSelectedId} />
       </div>
 
       {selectedNode && (
