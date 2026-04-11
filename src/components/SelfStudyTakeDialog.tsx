@@ -354,9 +354,14 @@ function FreeTextQuiz({
         .eq("id", assignment.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       onComplete();
       toast.success("Responses submitted! 🎉");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await awardSelfStudyXp(user.id, 100, assignment.xp_reward);
+        await triggerAgentAfterSelfStudy(user.id);
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -445,9 +450,14 @@ function CodeChallenge({
         .eq("id", assignment.id);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       onComplete();
       toast.success("Code submitted! 🎉");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await awardSelfStudyXp(user.id, 100, assignment.xp_reward);
+        await triggerAgentAfterSelfStudy(user.id);
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
