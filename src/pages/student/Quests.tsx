@@ -181,6 +181,7 @@ export default function StudentQuests() {
               {activeQuests.map((quest, i) => (
                 <motion.div
                   key={quest.id}
+                  data-wizard-quest={i === 0 ? "first" : undefined}
                   initial={{ opacity: 0, x: -20 }}
                   animate={
                     bouncing

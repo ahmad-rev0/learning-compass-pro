@@ -8,8 +8,8 @@ const PAL = {
   robe:       "#2a3a6b",
   robeLight:  "#3a4a8b",
   robeDark:   "#1a2a4b",
-  skin:       "#f5d0a9",
-  skinShade:  "#d4a878",
+  skin:       "#e8a87c",
+  skinShade:  "#c4845a",
   hat:        "#1a2a5b",
   hatBand:    "#c4a97d",
   staffWood:  "#8b6914",
@@ -31,8 +31,8 @@ function drawWizard(
   frame: number,
   mood: WizardMood
 ) {
-  const px = Math.floor(Math.min(w / 32, h / 48));
-  const ox = Math.floor((w - 32 * px) / 2);
+  const px = Math.floor(Math.min(w / 36, h / 48));
+  const ox = Math.floor((w - 36 * px) / 2);
   const oy = Math.floor((h - 48 * px) / 2);
 
   const p = (x: number, y: number, color: string) => {
@@ -132,17 +132,32 @@ function drawWizard(
   }
 
   // ── Right arm + Staff ──
-  rect(22, 19 + bob, 2, 6, PAL.robeLight);
-  rect(22, 25 + bob, 2, 1, PAL.skin);
-
-  // Staff
-  const staffSway = Math.floor(Math.sin(frame * 0.06) * 0.5);
-  rect(25 + staffSway, 8 + bob, 2, 28, PAL.staffWood);
-  // Staff orb
-  const orbPulse = Math.sin(frame * 0.1) > 0;
-  rect(24 + staffSway, 6 + bob, 4, 3, orbPulse ? PAL.staffGem : "#33dd99");
-  p(25 + staffSway, 5 + bob, PAL.staffGem);
-  p(26 + staffSway, 5 + bob, PAL.staffGem);
+  if (mood === "pointing") {
+    // Staff extended to the right, pointing at target
+    const pointBob = Math.floor(Math.sin(frame * 0.1) * 0.6);
+    rect(22, 19 + bob, 2, 4, PAL.robeLight);
+    rect(22, 23 + bob, 2, 1, PAL.skin);
+    // Extended staff — angled right
+    rect(24, 18 + bob + pointBob, 2, 2, PAL.staffWood);
+    rect(26, 17 + bob + pointBob, 2, 2, PAL.staffWood);
+    rect(28, 16 + bob + pointBob, 2, 2, PAL.staffWood);
+    rect(30, 15 + bob + pointBob, 2, 2, PAL.staffWood);
+    // Staff orb at tip — pulsing
+    const orbPulse = Math.sin(frame * 0.15) > 0;
+    rect(30, 13 + bob + pointBob, 3, 3, orbPulse ? PAL.staffGem : "#33dd99");
+    p(31, 12 + bob + pointBob, PAL.staffGem);
+  } else {
+    rect(22, 19 + bob, 2, 6, PAL.robeLight);
+    rect(22, 25 + bob, 2, 1, PAL.skin);
+    // Staff vertical
+    const staffSway = Math.floor(Math.sin(frame * 0.06) * 0.5);
+    rect(25 + staffSway, 8 + bob, 2, 28, PAL.staffWood);
+    // Staff orb
+    const orbPulse = Math.sin(frame * 0.1) > 0;
+    rect(24 + staffSway, 6 + bob, 4, 3, orbPulse ? PAL.staffGem : "#33dd99");
+    p(25 + staffSway, 5 + bob, PAL.staffGem);
+    p(26 + staffSway, 5 + bob, PAL.staffGem);
+  }
 
   // ── Feet ──
   rect(11, 33 + bob, 4, 2, PAL.robeDark);
