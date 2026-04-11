@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import DemoTour from "@/components/DemoTour";
 import { useDemo } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -147,6 +148,8 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           {children}
         </motion.div>
       </main>
+
+      <DemoTour />
     </div>
   );
 }
