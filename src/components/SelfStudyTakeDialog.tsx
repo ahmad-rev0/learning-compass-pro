@@ -40,7 +40,8 @@ async function awardSelfStudyXp(userId: string, score: number, xpReward: number)
     const xpEarned = Math.round((score / 100) * xpReward) + 5;
     const newXp = progress.xp + xpEarned;
     const newLevel = Math.floor(newXp / 100) + 1;
-    const momentumDelta = score >= 80 ? 5 : score >= 50 ? 2 : -3;
+    // Aggressive momentum: 0% → -15, <30% → -10, <50% → -6, <80% → +2, 80%+ → +5
+    const momentumDelta = score === 0 ? -15 : score < 30 ? -10 : score < 50 ? -6 : score < 80 ? 2 : 5;
     const newMomentum = Math.max(0, Math.min(100, Number(progress.momentum_score) + momentumDelta));
     
     await supabase
