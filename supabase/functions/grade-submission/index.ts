@@ -230,9 +230,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   try {
-    const { submission_id } = await req.json();
-    if (!submission_id) {
-      return new Response(JSON.stringify({ error: "submission_id required" }), {
+    const body = await req.json();
+    const { submission_id, self_study_id } = body;
+    if (!submission_id && !self_study_id) {
+      return new Response(JSON.stringify({ error: "submission_id or self_study_id required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -243,6 +244,105 @@ serve(async (req) => {
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
     const exaApiKey = Deno.env.get("EXA_API_KEY") || "";
     const supabase = createClient(supabaseUrl, serviceKey);
+
+    // ── Handle external document (self_study) grading ──
+    if (self_study_id) {
+      const { data: selfStudy, error: ssErr } = await supabase
+        .from("self_study_assignments")
+        .select("*")
+        .eq("id", self_study_id)
+        .single();
+
+      if (ssErr || !selfStudy) {
+        return new Response(JSON.stringify({ error: "Self-study assignment not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const studentContent = selfStudy.student_answer || "(no content)";
+      const ssContent = selfStudy.content as any;
+
+      const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: "You are an AI grading assistant for Atlas. Evaluate the student's work fairly and provide actionable feedback. Return your evaluation using the grade_submission tool." },
+            { role: "user", content: `Grade this external document submission:\n\n**Subject:** ${selfStudy.subject}\n**Topic:** ${selfStudy.topic}\n**Title:** ${ssContent?.title || "External Document"}\n\n**Student's Content:**\n${studentContent}\n\nEvaluate quality, depth, and understanding. Score out of 100.` },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "grade_submission",
+              description: "Grade the submission",
+              parameters: {
+                type: "object",
+                properties: {
+                  score: { type: "number", description: "Score out of 100" },
+                  feedback: { type: "string" },
+                  strengths: { type: "array", items: { type: "string" } },
+                  improvements: { type: "array", items: { type: "string" } },
+                  momentum_impact: { type: "string", enum: ["boost", "maintain", "concern"] },
+                },
+                required: ["score", "feedback", "strengths", "improvements", "momentum_impact"],
+                additionalProperties: false,
+              },
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "grade_submission" } },
+        }),
+      });
+
+      if (!aiRes.ok) throw new Error(`AI error: ${aiRes.status}`);
+      const aiData = await aiRes.json();
+      const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (!tc) throw new Error("No grading result");
+      const grade = JSON.parse(tc.function.arguments);
+
+      const finalScore = Math.min(Math.max(0, grade.score), 100);
+
+      // Update the self-study record
+      await supabase.from("self_study_assignments").update({
+        score: finalScore,
+        ai_feedback: grade,
+        status: "graded",
+      }).eq("id", self_study_id);
+
+      // Update gamification
+      const { data: progress } = await supabase
+        .from("gamification_progress")
+        .select("*")
+        .eq("user_id", selfStudy.user_id)
+        .single();
+
+      const xpEarned = Math.round((finalScore / 100) * 50) + 10;
+
+      if (progress) {
+        const newXp = progress.xp + xpEarned;
+        let momentumDelta = finalScore === 0 ? -15 : finalScore < 30 ? -10 : finalScore < 50 ? -6 : finalScore < 70 ? 0 : 5;
+        await supabase.from("gamification_progress").update({
+          xp: newXp,
+          level: Math.floor(newXp / 100) + 1,
+          momentum_score: Math.max(0, Math.min(100, Number(progress.momentum_score) + momentumDelta)),
+          last_activity_at: new Date().toISOString(),
+        }).eq("user_id", selfStudy.user_id);
+      }
+
+      // Trigger agent nudge for quest generation
+      try {
+        await supabase.functions.invoke("agent-nudge", { body: { user_id: selfStudy.user_id } });
+      } catch (e) {
+        console.warn("agent-nudge call failed:", e);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        grade,
+        xp_earned: xpEarned,
+        agent_state: "external_graded",
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // ── 1. Fetch submission + assignment ──
     const { data: submission, error: subErr } = await supabase
