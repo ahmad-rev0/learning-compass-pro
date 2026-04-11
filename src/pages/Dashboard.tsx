@@ -33,21 +33,13 @@ const STUDENT_NAV = [
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [soundOn, setSoundOn] = useState(!sfx.muted);
-  // Initialize synchronously so we don't miss it on remount
-  const [showSplash, setShowSplash] = useState(() => {
-    const splashKey = "atlas_splash_shown";
-    if (!sessionStorage.getItem(splashKey)) {
-      return true;
-    }
-    return false;
-  });
+  const [showSplash, setShowSplash] = useState(true);
   const { user, role, loading, signOut } = useAuth();
   const { isDemoMode, exitDemo } = useDemo();
   const location = useLocation();
   const navigate = useNavigate();
 
   const handleSplashComplete = () => {
-    sessionStorage.setItem("atlas_splash_shown", "1");
     setShowSplash(false);
   };
 
