@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { motion, AnimatePresence } from "framer-motion";
-import { Swords, CheckCircle, Sparkles, Settings2, ExternalLink, AlertTriangle } from "lucide-react";
+import { Swords, CheckCircle, Sparkles, Settings2, ExternalLink, AlertTriangle, Play, Loader2 } from "lucide-react";
 import { QuestPath3D } from "@/components/QuestPath3D";
 import { toast } from "sonner";
 import { sfx } from "@/lib/retroSfx";
@@ -17,6 +17,7 @@ import { sfx } from "@/lib/retroSfx";
 const TYPE_STYLES: Record<string, string> = {
   recovery: "bg-destructive/10 text-destructive border-destructive/30",
   growth: "bg-primary/10 text-primary border-primary/30",
+  sidequest: "bg-warning/10 text-warning border-warning/30",
 };
 
 export default function StudentQuests() {
@@ -26,6 +27,7 @@ export default function StudentQuests() {
   const [bouncing, setBouncing] = useState(false);
   const [inactivityMin, setInactivityMin] = useState(2);
   const [showSettings, setShowSettings] = useState(false);
+  const [workingQuestId, setWorkingQuestId] = useState<string | null>(null);
   const lastActivityRef = useRef(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
@@ -105,6 +107,7 @@ export default function StudentQuests() {
         sfx.success();
         toast.success(`Quest completed! +${quest?.xp_reward || 0} XP ⚡`);
       }
+      setWorkingQuestId(null);
       queryClient.invalidateQueries({ queryKey: ["student-quests"] });
       queryClient.invalidateQueries({ queryKey: ["student-progress"] });
     },
@@ -116,6 +119,12 @@ export default function StudentQuests() {
 
   const activeQuests = quests.filter((q) => q.status === "active");
   const completedQuests = quests.filter((q) => q.status === "completed");
+
+  const handleStartQuest = (questId: string) => {
+    setWorkingQuestId(questId);
+    sfx.click();
+    toast("Quest started! Follow the steps below.", { icon: "⚔️" });
+  };
 
   return (
     <div className="space-y-4" data-wizard-target="quests">
@@ -157,10 +166,7 @@ export default function StudentQuests() {
         )}
       </AnimatePresence>
 
-      {/* 3D Quest Path Visualization */}
-      {quests.length > 0 && (
-        <QuestPath3D quests={quests} />
-      )}
+      {quests.length > 0 && <QuestPath3D quests={quests} />}
 
       {isLoading ? (
         <p className="text-muted-foreground text-sm">Loading...</p>
@@ -178,61 +184,124 @@ export default function StudentQuests() {
           {activeQuests.length > 0 && (
             <div className="space-y-2">
               <p className="font-pixel text-[9px] text-accent">⚔️ ACTIVE QUESTS</p>
-              {activeQuests.map((quest, i) => (
-                <motion.div
-                  key={quest.id}
-                  data-wizard-quest={i === 0 ? "first" : undefined}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={
-                    bouncing
-                      ? { opacity: 1, x: 0, y: [0, -8, 0, -4, 0], transition: { y: { repeat: Infinity, duration: 1.2, ease: "easeInOut" } } }
-                      : { opacity: 1, x: 0 }
-                  }
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Card className={`border-2 ${bouncing ? "border-warning/60 shadow-[0_0_12px_hsl(var(--warning)/0.3)]" : "border-accent/30"} transition-all`}>
-                    <CardContent className="py-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-pixel text-[10px] text-foreground">{quest.title}</p>
-                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{quest.description}</p>
-                          <div className="flex items-center gap-2 mt-2 flex-wrap">
-                            <Badge className={TYPE_STYLES[quest.type] || ""} variant="outline">
-                              {quest.type}
-                            </Badge>
-                            <span className="font-pixel text-[9px] text-warning">+{quest.xp_reward} XP</span>
-                            {(quest as any).error_pattern?.startsWith("RECURRING:") && (
-                              <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[8px]">
-                                <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> PATTERN
+              {activeQuests.map((quest, i) => {
+                const isWorking = workingQuestId === quest.id;
+                const steps: string[] = Array.isArray((quest as any).steps) ? (quest as any).steps : [];
+                const isSideQuest = quest.type === "sidequest";
+
+                return (
+                  <motion.div
+                    key={quest.id}
+                    data-wizard-quest={i === 0 ? "first" : undefined}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={
+                      bouncing && !isWorking
+                        ? { opacity: 1, x: 0, y: [0, -8, 0, -4, 0], transition: { y: { repeat: Infinity, duration: 1.2, ease: "easeInOut" } } }
+                        : { opacity: 1, x: 0 }
+                    }
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Card className={`border-2 transition-all ${
+                      isWorking
+                        ? "border-primary shadow-[0_0_16px_hsl(var(--primary)/0.3)]"
+                        : bouncing
+                          ? "border-warning/60 shadow-[0_0_12px_hsl(var(--warning)/0.3)]"
+                          : isSideQuest
+                            ? "border-warning/30"
+                            : "border-accent/30"
+                    }`}>
+                      <CardContent className="py-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-pixel text-[10px] text-foreground">{quest.title}</p>
+                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{quest.description}</p>
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <Badge className={TYPE_STYLES[quest.type] || ""} variant="outline">
+                                {isSideQuest ? "🎈 side quest" : quest.type}
                               </Badge>
+                              <span className="font-pixel text-[9px] text-warning">+{quest.xp_reward} XP</span>
+                              {(quest as any).error_pattern?.startsWith("RECURRING:") && (
+                                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[8px]">
+                                  <AlertTriangle className="h-2.5 w-2.5 mr-0.5" /> PATTERN
+                                </Badge>
+                              )}
+                            </div>
+                            {(quest as any).resource_url && (
+                              <a
+                                href={(quest as any).resource_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 mt-2 text-[10px] text-primary hover:underline font-pixel bg-primary/10 px-2 py-1 rounded border border-primary/20"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ExternalLink className="h-3 w-3" /> 🔍 EXA STUDY RESOURCE ↗
+                              </a>
                             )}
                           </div>
-                          {(quest as any).resource_url && (
-                            <a
-                              href={(quest as any).resource_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 mt-2 text-[10px] text-primary hover:underline font-pixel"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ExternalLink className="h-3 w-3" /> STUDY RESOURCE
-                            </a>
-                          )}
+                          <div className="flex flex-col gap-1.5 shrink-0">
+                            {!isWorking ? (
+                              <Button
+                                size="sm"
+                                className="font-pixel text-[8px]"
+                                onClick={() => handleStartQuest(quest.id)}
+                              >
+                                <Play className="h-3 w-3 mr-1" /> START
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="font-pixel text-[8px] border-primary text-primary"
+                                onClick={() => completeQuest.mutate(quest.id)}
+                                disabled={completeQuest.isPending}
+                              >
+                                {completeQuest.isPending ? (
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                )}
+                                COMPLETE
+                              </Button>
+                            )}
+                            {isWorking && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="font-pixel text-[7px] text-muted-foreground"
+                                onClick={() => setWorkingQuestId(null)}
+                              >
+                                PAUSE
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="font-pixel text-[8px] shrink-0"
-                          onClick={() => completeQuest.mutate(quest.id)}
-                          disabled={completeQuest.isPending}
-                        >
-                          <CheckCircle className="h-3 w-3 mr-1" /> DONE
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+
+                        {/* Steps — shown when working */}
+                        <AnimatePresence>
+                          {isWorking && steps.length > 0 && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="mt-3 space-y-1.5 border-t border-border pt-3"
+                            >
+                              <p className="font-pixel text-[8px] text-accent mb-1">📋 QUEST STEPS</p>
+                              {steps.map((step: string, si: number) => (
+                                <div key={si} className="flex items-start gap-2 text-sm">
+                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-muted font-pixel text-[7px] text-muted-foreground rounded">
+                                    {si + 1}
+                                  </div>
+                                  <span className="text-muted-foreground">{step}</span>
+                                </div>
+                              ))}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
 
