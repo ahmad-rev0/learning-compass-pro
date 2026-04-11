@@ -356,6 +356,60 @@ export type Database = {
           },
         ]
       }
+      self_study_assignments: {
+        Row: {
+          ai_feedback: Json | null
+          content: Json
+          created_at: string
+          difficulty: string
+          generated_by: string
+          id: string
+          score: number | null
+          status: string
+          student_answer: string | null
+          subject: string
+          topic: string
+          type: string
+          updated_at: string
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          ai_feedback?: Json | null
+          content?: Json
+          created_at?: string
+          difficulty?: string
+          generated_by?: string
+          id?: string
+          score?: number | null
+          status?: string
+          student_answer?: string | null
+          subject: string
+          topic: string
+          type?: string
+          updated_at?: string
+          user_id: string
+          xp_reward?: number
+        }
+        Update: {
+          ai_feedback?: Json | null
+          content?: Json
+          created_at?: string
+          difficulty?: string
+          generated_by?: string
+          id?: string
+          score?: number | null
+          status?: string
+          student_answer?: string | null
+          subject?: string
+          topic?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       study_plans: {
         Row: {
           agent_reasoning: string | null
