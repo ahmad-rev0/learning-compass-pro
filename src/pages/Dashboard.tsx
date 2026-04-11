@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy, Volume2, VolumeX, Brain, CalendarDays, Play } from "lucide-react";
+import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy, Volume2, VolumeX, Brain, CalendarDays, Play, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sfx } from "@/lib/retroSfx";
 import atlasLogo from "@/assets/atlas-logo.png";
@@ -30,6 +30,7 @@ const STUDENT_NAV = [
   { to: "/student/achievements", icon: Trophy, label: "ACHIEVEMENTS" },
   { to: "/student/agent", icon: Brain, label: "AGENT" },
   { to: "/student/study-plan", icon: CalendarDays, label: "STUDY PLAN" },
+  { to: "/student/self-study", icon: Bot, label: "AI TEACHER" },
 ];
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {

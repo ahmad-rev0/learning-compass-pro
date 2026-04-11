@@ -19,6 +19,7 @@ import StudentUpload from "./pages/student/Upload";
 import StudentAchievements from "./pages/student/Achievements";
 import StudentAgentDashboard from "./pages/student/AgentDashboard";
 import StudentStudyPlan from "./pages/student/StudyPlan";
+import StudentSelfStudy from "./pages/student/SelfStudy";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="/student/achievements" element={<DashboardLayout><StudentAchievements /></DashboardLayout>} />
               <Route path="/student/agent" element={<DashboardLayout><StudentAgentDashboard /></DashboardLayout>} />
               <Route path="/student/study-plan" element={<DashboardLayout><StudentStudyPlan /></DashboardLayout>} />
+              <Route path="/student/self-study" element={<DashboardLayout><StudentSelfStudy /></DashboardLayout>} />
 
               <Route path="/simulation" element={<Index />} />
               <Route path="*" element={<NotFound />} />
