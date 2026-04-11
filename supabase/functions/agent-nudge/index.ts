@@ -115,7 +115,9 @@ serve(async (req) => {
     const momentum = Number(progress.momentum_score);
     const scores = signals.map((s) => s.scorePct);
     const recentAvg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 50;
-    const lowScoreCount = scores.filter((score) => score < 50).length;
+    const recent3 = scores.slice(0, 3);
+    const recent3Avg = recent3.length > 0 ? recent3.reduce((a, b) => a + b, 0) / recent3.length : 50;
+    const lowScoreCount = recent3.filter((score) => score < 50).length;
     const lastActivity = progress.last_activity_at ? new Date(progress.last_activity_at) : null;
     const hoursSinceActivity = lastActivity ? (Date.now() - lastActivity.getTime()) / 3600000 : 999;
     const staleQuests = activeQuests.length;
@@ -123,7 +125,11 @@ serve(async (req) => {
     let interventionNeeded = false;
     let interventionType = "encouragement";
 
-    if (momentum < 25) {
+    // Check sidequest first when student is doing well recently
+    if (momentum >= 50 && recent3Avg >= 60 && lowScoreCount === 0) {
+      interventionNeeded = true;
+      interventionType = "side_quest";
+    } else if (momentum < 25) {
       interventionNeeded = true;
       interventionType = "emergency_recovery";
     } else if (hoursSinceActivity > 48) {
@@ -141,10 +147,6 @@ serve(async (req) => {
     } else if (scores.length >= 3 && scores[0] > scores[1] && scores[1] > scores[2]) {
       interventionNeeded = true;
       interventionType = "momentum_boost";
-    } else if (momentum >= 50 && recentAvg >= 60) {
-      // Student is doing well — generate a side quest for enrichment
-      interventionNeeded = true;
-      interventionType = "side_quest";
     }
 
     const weaknesses = [...new Set(signals.flatMap((s) => s.improvements).filter(Boolean))].slice(0, 5);
