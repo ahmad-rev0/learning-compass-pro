@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useDemo } from "@/contexts/DemoContext";
+import { DEMO_USER_ID } from "@/lib/demoData";
 
 type UserRole = "teacher" | "student" | "admin";
 
@@ -21,7 +23,18 @@ const parseUserRole = (value: unknown): UserRole | null => {
   return USER_ROLE_PRIORITY.includes(value as UserRole) ? (value as UserRole) : null;
 };
 
+// Fake user object for demo mode
+const DEMO_USER = {
+  id: DEMO_USER_ID,
+  email: "demo@atlas-learning.app",
+  user_metadata: { display_name: "Demo Student", app_role: "student" },
+  app_metadata: {},
+  aud: "authenticated",
+  created_at: new Date().toISOString(),
+} as unknown as User;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { isDemoMode } = useDemo();
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
@@ -58,7 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(resolvedRole);
   };
 
+  // Demo mode override
   useEffect(() => {
+    if (isDemoMode) {
+      setUser(DEMO_USER);
+      setRole("student");
+      setSession({ user: DEMO_USER } as unknown as Session);
+      setLoading(false);
+    }
+  }, [isDemoMode]);
+
+  useEffect(() => {
+    if (isDemoMode) return;
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
@@ -86,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [isDemoMode]);
 
   const signUp = async (email: string, password: string, displayName: string, selectedRole: UserRole) => {
     const { data, error } = await supabase.auth.signUp({
@@ -105,6 +130,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (isDemoMode) {
+      // Will be handled by DemoContext exit
+      return;
+    }
     await supabase.auth.signOut();
     setRole(null);
   };
