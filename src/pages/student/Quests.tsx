@@ -73,6 +73,22 @@ export default function StudentQuests() {
     return () => clearInterval(timerRef.current);
   }, [inactivityMin]);
 
+  // Proactive agentic check: trigger agent-nudge on page load to autonomously
+  // evaluate student state and generate quests if needed
+  const agentCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!user || isDemoMode || agentCheckedRef.current) return;
+    agentCheckedRef.current = true;
+    supabase.functions.invoke("agent-nudge", { body: { user_id: user.id } })
+      .then(({ data }) => {
+        if (data?.nudge) {
+          queryClient.invalidateQueries({ queryKey: ["student-quests"] });
+          toast.info(`🤖 Agent detected: ${data.intervention_type?.replace(/_/g, " ")}`, { duration: 4000 });
+        }
+      })
+      .catch(() => {/* silent */});
+  }, [user, isDemoMode, queryClient]);
+
   const { data: quests = [], isLoading } = useQuery({
     queryKey: ["student-quests"],
     queryFn: async () => {

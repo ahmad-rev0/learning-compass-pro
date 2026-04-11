@@ -49,17 +49,20 @@ export default function StudentStudyPlan() {
     mutationFn: async () => {
       if (isDemoMode) {
         toast.success("New study plan generated! 📚 (Demo)");
-        return;
+        return { success: true, plan: {} };
       }
       const { data, error } = await supabase.functions.invoke("generate-study-plan", {
         body: { user_id: user!.id },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      if (data?.success && !data?.plan) {
+        throw new Error("You need at least one graded submission or self-study before the agent can create a personalized plan.");
+      }
       return data;
     },
-    onSuccess: () => {
-      if (!isDemoMode) {
+    onSuccess: (data) => {
+      if (!isDemoMode && data?.plan) {
         sfx.success();
         toast.success("New study plan generated! 📚");
       }
