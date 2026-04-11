@@ -108,7 +108,7 @@ export default function StudentUpload() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-wizard-target="upload">
       <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
         <Upload className="h-4 w-4" /> SUBMIT WORK
       </h2>

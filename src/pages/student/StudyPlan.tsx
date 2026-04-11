@@ -74,7 +74,7 @@ export default function StudentStudyPlan() {
   const activePlan = plans.find((p: any) => p.status === "active");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-wizard-target="study-plan">
       <div className="flex items-center justify-between">
         <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
           <BookOpen className="h-4 w-4" /> STUDY PLAN

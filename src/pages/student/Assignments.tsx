@@ -59,7 +59,7 @@ export default function StudentAssignments() {
   const submissionMap = new Map(submissions.map((s) => [s.assignment_id, s]));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-wizard-target="assignments">
       <h2 className="font-pixel text-[10px] text-foreground flex items-center gap-2">
         <FileText className="h-4 w-4" /> MY ASSIGNMENTS
       </h2>

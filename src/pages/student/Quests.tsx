@@ -118,7 +118,7 @@ export default function StudentQuests() {
   const completedQuests = quests.filter((q) => q.status === "completed");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-wizard-target="quests">
       <div className="flex items-center justify-between">
         <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
           <Swords className="h-4 w-4" /> QUESTS
