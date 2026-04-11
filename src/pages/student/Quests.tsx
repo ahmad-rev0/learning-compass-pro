@@ -157,6 +157,11 @@ export default function StudentQuests() {
         )}
       </AnimatePresence>
 
+      {/* 3D Quest Path Visualization */}
+      {quests.length > 0 && (
+        <QuestPath3D quests={quests} />
+      )}
+
       {isLoading ? (
         <p className="text-muted-foreground text-sm">Loading...</p>
       ) : activeQuests.length === 0 && completedQuests.length === 0 ? (
