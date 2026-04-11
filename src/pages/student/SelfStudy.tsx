@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bot, Zap, BookOpen, Code, FileText, Sparkles, Loader2, CheckCircle2, Clock, Brain } from "lucide-react";
+import { SelfStudyTakeDialog } from "@/components/SelfStudyTakeDialog";
 
 const SUBJECTS = [
   "Mathematics", "Computer Science", "Physics", "Chemistry",
@@ -353,9 +354,12 @@ function AssignmentCard({ assignment }: { assignment: any }) {
               </div>
             </div>
           </div>
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-            {new Date(assignment.created_at).toLocaleDateString()}
-          </span>
+          <div className="flex items-center gap-2">
+            <SelfStudyTakeDialog assignment={assignment} />
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+              {new Date(assignment.created_at).toLocaleDateString()}
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>
