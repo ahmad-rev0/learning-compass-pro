@@ -221,7 +221,36 @@ function MasteryOrb({ position, color, mastery }: { position: [number, number, n
   );
 }
 
-/* ── Mastery-scaled particles: more particles, faster, wider spread with mastery ── */
+/* ── Aggressive energy ring: spinning halos for >80% mastery ── */
+function AggressiveEnergyRing({ color }: { color: string }) {
+  const ring1 = useRef<THREE.Mesh>(null);
+  const ring2 = useRef<THREE.Mesh>(null);
+  const ring3 = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (ring1.current) { ring1.current.rotation.x = t * 3; ring1.current.rotation.z = t * 1.5; }
+    if (ring2.current) { ring2.current.rotation.y = t * 4; ring2.current.rotation.x = t * 0.8; }
+    if (ring3.current) { ring3.current.rotation.z = t * 2.5; ring3.current.rotation.y = t * 1.2; }
+  });
+  return (
+    <group>
+      <mesh ref={ring1}>
+        <torusGeometry args={[0.22, 0.008, 8, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.7} />
+      </mesh>
+      <mesh ref={ring2}>
+        <torusGeometry args={[0.28, 0.006, 8, 32]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
+      </mesh>
+      <mesh ref={ring3}>
+        <torusGeometry args={[0.18, 0.005, 8, 24]} />
+        <meshBasicMaterial color={color} transparent opacity={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
+
 function MasteryParticles({ color, mastery }: { color: string; mastery: number }) {
   const ref = useRef<THREE.Points>(null);
   const m = getMasteryScale(mastery);
