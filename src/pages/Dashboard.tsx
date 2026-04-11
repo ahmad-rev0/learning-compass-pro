@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
             <motion.img
               src={atlasLogo}
               alt="Atlas"
-              className="w-[88px] h-[88px] object-contain -my-3"
+              className="w-[70px] h-[70px] object-contain -my-3"
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             />
