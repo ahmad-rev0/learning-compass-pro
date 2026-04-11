@@ -57,16 +57,27 @@ function Platform({
     return { base: "#7f8c8d", top: "#a0aeb0", emissive: "#5a6566", accent: "#bdc3c7", glow: "#aabbcc" };
   }, [node]);
 
+  const aggressive = node.mastery > 0.8;
+
   useFrame((state) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    groupRef.current.position.y = position[1] + Math.sin(t * 0.5 + index * 0.9) * m.bobIntensity;
+    // Aggressive bob: faster + stronger
+    const bobFreq = aggressive ? 1.8 : 0.5;
+    groupRef.current.position.y = position[1] + Math.sin(t * bobFreq + index * 0.9) * m.bobIntensity;
 
-    // Glow ring pulsing based on mastery
+    // Aggressive platforms also rotate slightly
+    if (aggressive) {
+      groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.08;
+    }
+
+    // Glow ring pulsing
     if (glowRef.current) {
-      const s = m.glowScale + Math.sin(t * (1.5 + node.mastery * 2)) * 0.1 * node.mastery;
+      const s = m.glowScale + Math.sin(t * m.pulseFreq) * (aggressive ? 0.4 : 0.1) * node.mastery;
       glowRef.current.scale.set(s, s, s);
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.15 + node.mastery * 0.45;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = aggressive
+        ? 0.5 + Math.sin(t * 4) * 0.3
+        : 0.15 + node.mastery * 0.45;
     }
   });
 
