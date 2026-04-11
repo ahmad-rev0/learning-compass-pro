@@ -125,6 +125,7 @@ export default function StudentAssignments() {
                           </div>
                         </div>
                         <SelfStudyTakeDialog assignment={a} />
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
