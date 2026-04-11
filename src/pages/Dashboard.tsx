@@ -46,6 +46,13 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     setShowSplash(false);
   };
 
+  // Hide header when user scrolls past ~120px (start of content area)
+  useEffect(() => {
+    const handleScroll = () => setHeaderVisible(window.scrollY < 120);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   // Show splash BEFORE any auth/loading guards
   if (showSplash) {
     return <SplashScreen onComplete={handleSplashComplete} />;
