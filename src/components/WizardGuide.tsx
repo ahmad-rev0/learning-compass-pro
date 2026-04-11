@@ -155,10 +155,10 @@ export function WizardGuide() {
         />
       )}
 
-      {/* Wizard — FIXED, does not move on scroll */}
+      {/* Wizard — fixed in nav phase, absolute (scrolls with page) in task phase */}
       <motion.div
         ref={wizardRef}
-        className="fixed z-50 pointer-events-auto"
+        className={`${phase === "task" ? "absolute" : "fixed"} z-50 pointer-events-auto`}
         initial={{ opacity: 0, scale: 0.3 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 100, damping: 18 }}
