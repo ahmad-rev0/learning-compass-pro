@@ -1,0 +1,1 @@
+DROP POLICY "System inserts self-study assignments" ON public.self_study_assignments;
