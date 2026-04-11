@@ -148,6 +148,8 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           {children}
         </motion.div>
       </main>
+
+      <DemoTour />
     </div>
   );
 }
