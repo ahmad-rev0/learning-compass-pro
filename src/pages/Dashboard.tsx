@@ -88,8 +88,8 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
             <motion.img
               src={atlasLogo}
               alt="Atlas"
-              width={64}
-              height={64}
+              width={144}
+              height={144}
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             />
