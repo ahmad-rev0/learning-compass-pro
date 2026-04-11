@@ -97,14 +97,12 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
           !headerVisible && "-translate-y-full opacity-0 pointer-events-none"
         )}
       >
-        <div className="container flex items-center justify-between py-2">
+        <div className="container flex items-center justify-between py-2 h-16">
           <div className="flex items-center gap-4">
             <motion.img
               src={atlasLogo}
               alt="Atlas"
-              className="w-16 h-16 object-contain"
-              width={144}
-              height={144}
+              className="w-[88px] h-[88px] object-contain -my-3"
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             />
