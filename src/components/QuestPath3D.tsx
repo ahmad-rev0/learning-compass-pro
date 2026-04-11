@@ -265,13 +265,25 @@ function MasteryParticles({ color, mastery }: { color: string; mastery: number }
     return arr;
   }, [mastery, m.particleCount, m.particleSpread]);
 
+  const aggressive = mastery > 0.8;
+
   useFrame((state) => {
     if (!ref.current) return;
-    ref.current.rotation.y = state.clock.elapsedTime * m.particleSpeed;
-    // Vertical float
+    const t = state.clock.elapsedTime;
+    ref.current.rotation.y = t * m.particleSpeed;
+    if (aggressive) {
+      ref.current.rotation.x = Math.sin(t * 0.7) * 0.3;
+    }
     const posArr = ref.current.geometry.attributes.position.array as Float32Array;
     for (let i = 0; i < m.particleCount; i++) {
-      posArr[i * 3 + 1] += Math.sin(state.clock.elapsedTime * (1 + mastery * 2) + i) * 0.002 * (1 + mastery);
+      const speed = aggressive ? 0.012 : 0.002;
+      const freq = aggressive ? (3 + i * 0.5) : (1 + mastery * 2);
+      posArr[i * 3 + 1] += Math.sin(t * freq + i) * speed * (1 + mastery);
+      // Aggressive: also wobble horizontally
+      if (aggressive) {
+        posArr[i * 3] += Math.cos(t * 4 + i * 0.8) * 0.003;
+        posArr[i * 3 + 2] += Math.sin(t * 3.5 + i * 1.1) * 0.003;
+      }
     }
     ref.current.geometry.attributes.position.needsUpdate = true;
   });
