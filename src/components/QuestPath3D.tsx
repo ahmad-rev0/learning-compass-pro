@@ -14,13 +14,18 @@ interface QuestNode {
 
 /* ── Mastery-scaled values ── */
 function getMasteryScale(mastery: number) {
+  const aggressive = mastery > 0.8;
+  const boost = aggressive ? 2.5 : 1;
   return {
-    emissiveIntensity: 0.1 + mastery * 0.9,
-    particleCount: Math.floor(4 + mastery * 20),
-    particleSpeed: 0.2 + mastery * 0.8,
-    particleSpread: 0.8 + mastery * 1.2,
-    glowScale: 0.8 + mastery * 0.6,
-    bobIntensity: 0.03 + mastery * 0.08,
+    emissiveIntensity: aggressive ? 1.5 : 0.1 + mastery * 0.9,
+    particleCount: Math.floor(aggressive ? 40 : 4 + mastery * 20),
+    particleSpeed: aggressive ? 2.0 : 0.2 + mastery * 0.8,
+    particleSpread: aggressive ? 2.5 : 0.8 + mastery * 1.2,
+    glowScale: aggressive ? 1.8 : 0.8 + mastery * 0.6,
+    bobIntensity: aggressive ? 0.18 : 0.03 + mastery * 0.08,
+    pulseFreq: aggressive ? 6 : 1.5 + mastery * 2,
+    rotationSpeed: aggressive ? 1.5 : 0.5 + mastery,
+    orbPulseAmp: aggressive ? 0.08 : 0.03 * mastery,
   };
 }
 
