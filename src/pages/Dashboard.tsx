@@ -58,21 +58,21 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
   return (
     <div className="dashboard-shell min-h-screen bg-background pixel-grid-bg">
       <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
-        <div className="container flex items-center justify-between py-3">
-          <div className="flex items-center gap-4">
+        <div className="container flex items-center justify-between py-4">
+          <div className="flex items-center gap-5">
             <motion.img
               src={atlasLogo}
               alt="Atlas"
-              width={48}
-              height={48}
+              width={64}
+              height={64}
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             />
             <div>
-              <h1 className="font-pixel text-sm md:text-base tracking-[0.12em] text-foreground">
+              <h1 className="font-pixel text-lg md:text-xl tracking-[0.12em] text-foreground">
                 ATLAS
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-base text-muted-foreground mt-1">
                 {role === "teacher" ? "🎓 Teacher" : "📚 Student"}
               </p>
             </div>
