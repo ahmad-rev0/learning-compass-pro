@@ -1,260 +1,228 @@
-import { useRef, useMemo } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import * as THREE from "three";
+import { useRef, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 
 type WizardMood = "idle" | "pointing" | "celebrating" | "concerned" | "thinking";
 
-/* ── Procedural 3D Wizard Cartographer ── */
-function WizardModel({ mood }: { mood: WizardMood }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const staffRef = useRef<THREE.Group>(null);
-  const armRef = useRef<THREE.Group>(null);
-  const hatGlowRef = useRef<THREE.Mesh>(null);
+/* ── 8-bit colour palette ── */
+const PAL = {
+  robe:       "#2a3a6b",
+  robeLight:  "#3a4a8b",
+  robeDark:   "#1a2a4b",
+  skin:       "#f5d0a9",
+  skinShade:  "#d4a878",
+  hat:        "#1a2a5b",
+  hatBand:    "#c4a97d",
+  staffWood:  "#8b6914",
+  staffGem:   "#44ffaa",
+  beard:      "#e8e0d0",
+  beardShade: "#c8c0a8",
+  eyes:       "#1a1a2e",
+  eyeWhite:   "#ffffff",
+  stars:      "#FFD700",
+  alert:      "#ff6644",
+  think:      "#f39c12",
+};
 
-  const colors = useMemo(() => ({
-    robe: "#2a3a6b",
-    robeAccent: "#3a4a8b",
-    skin: "#f5d0a9",
-    hat: "#1a2a5b",
-    hatBand: "#c4a97d",
-    staff: "#8b6914",
-    staffGem: "#44ffaa",
-    beard: "#e8e0d0",
-    eyes: "#1a1a2e",
-  }), []);
+/* ── Pixel-art wizard drawn on a 32×48 grid ── */
+function drawWizard(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  frame: number,
+  mood: WizardMood
+) {
+  const px = Math.floor(Math.min(w / 32, h / 48));
+  const ox = Math.floor((w - 32 * px) / 2);
+  const oy = Math.floor((h - 48 * px) / 2);
 
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    const t = state.clock.elapsedTime;
+  const p = (x: number, y: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(ox + x * px, oy + y * px, px, px);
+  };
 
-    // Idle bobbing
-    groupRef.current.position.y = Math.sin(t * 1.2) * 0.06;
+  const rect = (x: number, y: number, rw: number, rh: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(ox + x * px, oy + y * px, rw * px, rh * px);
+  };
 
-    // Staff animation based on mood
-    if (staffRef.current) {
-      if (mood === "pointing") {
-        staffRef.current.rotation.z = THREE.MathUtils.lerp(
-          staffRef.current.rotation.z,
-          -0.6 + Math.sin(t * 2) * 0.08,
-          0.05
-        );
-      } else if (mood === "celebrating") {
-        staffRef.current.rotation.z = Math.sin(t * 4) * 0.3;
-        staffRef.current.position.y = 0.1 + Math.abs(Math.sin(t * 3)) * 0.15;
-      } else if (mood === "concerned") {
-        staffRef.current.rotation.z = Math.sin(t * 0.8) * 0.05;
-      } else {
-        staffRef.current.rotation.z = THREE.MathUtils.lerp(
-          staffRef.current.rotation.z,
-          Math.sin(t * 0.6) * 0.08,
-          0.03
-        );
+  ctx.clearRect(0, 0, w, h);
+
+  // Bobbing offset
+  const bob = Math.floor(Math.sin(frame * 0.08) * 1.2);
+
+  // ── Hat tip (pointy) ──
+  p(15, 2 + bob, PAL.hat);
+  p(16, 2 + bob, PAL.hat);
+  rect(14, 3 + bob, 4, 1, PAL.hat);
+  rect(13, 4 + bob, 6, 1, PAL.hat);
+  rect(12, 5 + bob, 8, 1, PAL.hat);
+  rect(11, 6 + bob, 10, 2, PAL.hat);
+
+  // Hat brim
+  rect(9, 8 + bob, 14, 1, PAL.hat);
+  // Hat band
+  rect(11, 7 + bob, 10, 1, PAL.hatBand);
+
+  // Gem on hat
+  const gemFlicker = Math.sin(frame * 0.15) > 0;
+  p(15, 5 + bob, gemFlicker ? PAL.staffGem : "#33cc88");
+  p(16, 5 + bob, gemFlicker ? "#33cc88" : PAL.staffGem);
+
+  // ── Head ──
+  rect(12, 9 + bob, 8, 7, PAL.skin);
+  rect(11, 10 + bob, 1, 5, PAL.skin);
+  rect(20, 10 + bob, 1, 5, PAL.skin);
+
+  // Eyes
+  const blink = frame % 60 < 3;
+  if (blink) {
+    p(13, 12 + bob, PAL.skinShade);
+    p(18, 12 + bob, PAL.skinShade);
+  } else {
+    p(13, 11 + bob, PAL.eyeWhite);
+    p(14, 11 + bob, PAL.eyeWhite);
+    p(18, 11 + bob, PAL.eyeWhite);
+    p(19, 11 + bob, PAL.eyeWhite);
+
+    // Pupils - shift based on mood
+    const pupilOff = mood === "pointing" ? -1 : mood === "thinking" ? 1 : 0;
+    p(14 + pupilOff, 12 + bob, PAL.eyes);
+    p(18 + pupilOff, 12 + bob, PAL.eyes);
+  }
+
+  // Mouth
+  if (mood === "celebrating") {
+    p(15, 14 + bob, PAL.skinShade);
+    p(16, 14 + bob, PAL.skinShade);
+  } else if (mood === "concerned") {
+    p(15, 15 + bob, PAL.skinShade);
+    p(16, 14 + bob, PAL.skinShade);
+  } else {
+    p(15, 14 + bob, PAL.skinShade);
+  }
+
+  // ── Beard ──
+  rect(13, 16 + bob, 6, 2, PAL.beard);
+  rect(14, 18 + bob, 4, 2, PAL.beard);
+  rect(15, 20 + bob, 2, 1, PAL.beardShade);
+
+  // ── Robe / Body ──
+  rect(10, 18 + bob, 12, 3, PAL.robe);
+  rect(9, 21 + bob, 14, 4, PAL.robe);
+  rect(10, 25 + bob, 12, 4, PAL.robe);
+  rect(11, 29 + bob, 10, 3, PAL.robe);
+
+  // Robe accent stripe
+  rect(15, 21 + bob, 2, 10, PAL.robeLight);
+
+  // Robe bottom trim
+  rect(11, 32 + bob, 10, 1, PAL.hatBand);
+
+  // ── Left arm ──
+  if (mood === "pointing") {
+    // Pointing left
+    const pointBob = Math.floor(Math.sin(frame * 0.12) * 0.8);
+    rect(4, 20 + bob + pointBob, 6, 2, PAL.robeLight);
+    rect(2, 20 + bob + pointBob, 2, 2, PAL.skin);
+    // Pointing finger
+    p(1, 20 + bob + pointBob, PAL.skin);
+  } else {
+    rect(8, 19 + bob, 2, 6, PAL.robeLight);
+    rect(8, 25 + bob, 2, 1, PAL.skin);
+  }
+
+  // ── Right arm + Staff ──
+  rect(22, 19 + bob, 2, 6, PAL.robeLight);
+  rect(22, 25 + bob, 2, 1, PAL.skin);
+
+  // Staff
+  const staffSway = Math.floor(Math.sin(frame * 0.06) * 0.5);
+  rect(25 + staffSway, 8 + bob, 2, 28, PAL.staffWood);
+  // Staff orb
+  const orbPulse = Math.sin(frame * 0.1) > 0;
+  rect(24 + staffSway, 6 + bob, 4, 3, orbPulse ? PAL.staffGem : "#33dd99");
+  p(25 + staffSway, 5 + bob, PAL.staffGem);
+  p(26 + staffSway, 5 + bob, PAL.staffGem);
+
+  // ── Feet ──
+  rect(11, 33 + bob, 4, 2, PAL.robeDark);
+  rect(17, 33 + bob, 4, 2, PAL.robeDark);
+
+  // ── Mood-specific effects ──
+  if (mood === "celebrating") {
+    // Sparkle stars
+    const starPositions = [
+      [5, 5], [26, 3], [3, 15], [28, 12], [8, 30], [24, 28],
+    ];
+    starPositions.forEach(([sx, sy], i) => {
+      const twinkle = Math.sin(frame * 0.2 + i * 1.5) > 0.2;
+      if (twinkle) {
+        p(sx, sy + bob, PAL.stars);
       }
-    }
+    });
+  }
 
-    // Arm pointing gesture
-    if (armRef.current) {
-      if (mood === "pointing") {
-        armRef.current.rotation.z = THREE.MathUtils.lerp(
-          armRef.current.rotation.z,
-          -1.2 + Math.sin(t * 1.5) * 0.1,
-          0.04
-        );
-      } else {
-        armRef.current.rotation.z = THREE.MathUtils.lerp(
-          armRef.current.rotation.z,
-          0,
-          0.04
-        );
-      }
+  if (mood === "concerned") {
+    // Exclamation mark above head
+    const alertBlink = frame % 30 < 20;
+    if (alertBlink) {
+      rect(15, bob, 2, 1, PAL.alert);
     }
+  }
 
-    // Hat glow pulse
-    if (hatGlowRef.current) {
-      const intensity = mood === "celebrating" ? 0.6 + Math.sin(t * 5) * 0.3
-        : mood === "concerned" ? 0.2 + Math.sin(t * 2) * 0.1
-        : 0.3 + Math.sin(t * 1.5) * 0.15;
-      (hatGlowRef.current.material as THREE.MeshBasicMaterial).opacity = intensity;
-    }
+  if (mood === "thinking") {
+    // Thought dots
+    const dotPhase = Math.floor(frame / 15) % 4;
+    if (dotPhase >= 1) p(6, 8 + bob, PAL.think);
+    if (dotPhase >= 2) p(4, 6 + bob, PAL.think);
+    if (dotPhase >= 3) p(3, 4 + bob, PAL.think);
+  }
+}
 
-    // Body sway
-    groupRef.current.rotation.z = Math.sin(t * 0.7) * 0.03;
-    if (mood === "thinking") {
-      groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.15;
-    } else if (mood === "pointing") {
-      groupRef.current.rotation.y = THREE.MathUtils.lerp(
-        groupRef.current.rotation.y,
-        -0.3,
-        0.03
-      );
-    } else {
-      groupRef.current.rotation.y = THREE.MathUtils.lerp(
-        groupRef.current.rotation.y,
-        Math.sin(t * 0.3) * 0.1,
-        0.02
-      );
-    }
-  });
+/* ── Pixel Wizard Canvas Component ── */
+function PixelWizardCanvas({ mood = "idle", size = 160 }: { mood?: WizardMood; size?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef(0);
+  const animRef = useRef<number>(0);
+
+  const animate = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.imageSmoothingEnabled = false;
+    drawWizard(ctx, canvas.width, canvas.height, frameRef.current, mood);
+    frameRef.current++;
+    animRef.current = requestAnimationFrame(animate);
+  }, [mood]);
+
+  useEffect(() => {
+    animRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animRef.current);
+  }, [animate]);
 
   return (
-    <group ref={groupRef} scale={1.1}>
-      {/* Body / Robe */}
-      <mesh position={[0, -0.15, 0]}>
-        <coneGeometry args={[0.32, 0.7, 8]} />
-        <meshStandardMaterial color={colors.robe} roughness={0.7} />
-      </mesh>
-      {/* Robe trim */}
-      <mesh position={[0, -0.48, 0]}>
-        <torusGeometry args={[0.31, 0.03, 6, 16]} />
-        <meshStandardMaterial color={colors.hatBand} roughness={0.5} metalness={0.3} />
-      </mesh>
-
-      {/* Head */}
-      <mesh position={[0, 0.28, 0]}>
-        <sphereGeometry args={[0.18, 12, 12]} />
-        <meshStandardMaterial color={colors.skin} roughness={0.6} />
-      </mesh>
-
-      {/* Eyes */}
-      <mesh position={[-0.06, 0.3, 0.16]}>
-        <sphereGeometry args={[0.03, 8, 8]} />
-        <meshBasicMaterial color={colors.eyes} />
-      </mesh>
-      <mesh position={[0.06, 0.3, 0.16]}>
-        <sphereGeometry args={[0.03, 8, 8]} />
-        <meshBasicMaterial color={colors.eyes} />
-      </mesh>
-      {/* Eye highlights */}
-      <mesh position={[-0.05, 0.31, 0.18]}>
-        <sphereGeometry args={[0.012, 6, 6]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
-      <mesh position={[0.07, 0.31, 0.18]}>
-        <sphereGeometry args={[0.012, 6, 6]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
-
-      {/* Beard */}
-      <mesh position={[0, 0.15, 0.1]}>
-        <coneGeometry args={[0.1, 0.25, 6]} />
-        <meshStandardMaterial color={colors.beard} roughness={0.9} />
-      </mesh>
-
-      {/* Wizard Hat */}
-      <mesh position={[0, 0.55, -0.02]} rotation={[0.1, 0, 0]}>
-        <coneGeometry args={[0.2, 0.45, 8]} />
-        <meshStandardMaterial color={colors.hat} roughness={0.6} />
-      </mesh>
-      {/* Hat brim */}
-      <mesh position={[0, 0.38, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.15, 0.26, 12]} />
-        <meshStandardMaterial color={colors.hat} roughness={0.6} side={THREE.DoubleSide} />
-      </mesh>
-      {/* Hat band */}
-      <mesh position={[0, 0.42, 0]}>
-        <torusGeometry args={[0.19, 0.02, 6, 12]} />
-        <meshStandardMaterial color={colors.hatBand} roughness={0.4} metalness={0.5} />
-      </mesh>
-      {/* Hat star/compass */}
-      <mesh ref={hatGlowRef} position={[0, 0.5, 0.18]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <meshBasicMaterial color={colors.staffGem} transparent opacity={0.4} />
-      </mesh>
-
-      {/* Left arm (pointing arm) */}
-      <group ref={armRef} position={[-0.25, 0.05, 0]}>
-        <mesh rotation={[0, 0, 0.3]}>
-          <capsuleGeometry args={[0.04, 0.25, 4, 6]} />
-          <meshStandardMaterial color={colors.robeAccent} roughness={0.7} />
-        </mesh>
-        {/* Hand */}
-        <mesh position={[-0.05, -0.18, 0]}>
-          <sphereGeometry args={[0.045, 8, 8]} />
-          <meshStandardMaterial color={colors.skin} roughness={0.6} />
-        </mesh>
-      </group>
-
-      {/* Right arm + Staff */}
-      <group ref={staffRef} position={[0.28, 0.05, 0]}>
-        <mesh rotation={[0, 0, -0.2]}>
-          <capsuleGeometry args={[0.04, 0.2, 4, 6]} />
-          <meshStandardMaterial color={colors.robeAccent} roughness={0.7} />
-        </mesh>
-        {/* Staff */}
-        <mesh position={[0.05, -0.1, 0]} rotation={[0, 0, -0.1]}>
-          <cylinderGeometry args={[0.025, 0.02, 0.9, 6]} />
-          <meshStandardMaterial color={colors.staff} roughness={0.5} metalness={0.3} />
-        </mesh>
-        {/* Staff gem (compass orb) */}
-        <mesh position={[0.05, 0.35, 0]}>
-          <sphereGeometry args={[0.05, 10, 10]} />
-          <meshStandardMaterial
-            color={colors.staffGem}
-            emissive={colors.staffGem}
-            emissiveIntensity={0.8}
-            roughness={0.2}
-            metalness={0.3}
-          />
-        </mesh>
-        {/* Staff gem glow */}
-        <mesh position={[0.05, 0.35, 0]}>
-          <sphereGeometry args={[0.08, 10, 10]} />
-          <meshBasicMaterial color={colors.staffGem} transparent opacity={0.15} />
-        </mesh>
-      </group>
-
-      {/* Celebrating sparkles */}
-      {mood === "celebrating" && <CelebrationParticles />}
-    </group>
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={Math.floor(size * 1.5)}
+      className="w-full h-full"
+      style={{ imageRendering: "pixelated" }}
+    />
   );
 }
 
-function CelebrationParticles() {
-  const ref = useRef<THREE.Points>(null);
-  const positions = useMemo(() => {
-    const arr = new Float32Array(30 * 3);
-    for (let i = 0; i < 30; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 1.2;
-      arr[i * 3 + 1] = Math.random() * 1.0 - 0.2;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 0.8;
-    }
-    return arr;
-  }, []);
-
-  useFrame((state) => {
-    if (!ref.current) return;
-    const t = state.clock.elapsedTime;
-    ref.current.rotation.y = t * 0.5;
-    const posArr = ref.current.geometry.attributes.position.array as Float32Array;
-    for (let i = 0; i < 30; i++) {
-      posArr[i * 3 + 1] += Math.sin(t * 3 + i) * 0.005;
-    }
-    ref.current.geometry.attributes.position.needsUpdate = true;
-  });
-
-  return (
-    <points ref={ref}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-      </bufferGeometry>
-      <pointsMaterial size={0.04} color="#FFD700" transparent opacity={0.8} />
-    </points>
-  );
-}
-
-/* ── Exported canvas wrapper ── */
+/* ── Exported wrapper with framer-motion entrance ── */
 export function WizardAvatar3DCanvas({ mood = "idle" }: { mood?: WizardMood }) {
   return (
-    <Canvas
-      camera={{ position: [0, 0.1, 2.2], fov: 35 }}
-      style={{ width: "100%", height: "100%", background: "transparent" }}
-      gl={{ alpha: true, antialias: true }}
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className="w-full h-full flex items-center justify-center"
     >
-      <ambientLight intensity={0.6} color="#ffecd2" />
-      <directionalLight position={[2, 3, 2]} intensity={1.0} color="#fff5e6" />
-      <pointLight position={[-1, 1, 1]} intensity={0.4} color="#88bbff" distance={5} />
-      <WizardModel mood={mood} />
-    </Canvas>
+      <PixelWizardCanvas mood={mood} size={128} />
+    </motion.div>
   );
 }
 
