@@ -7,11 +7,22 @@ import { sfx } from "@/lib/retroSfx";
 import { ChevronRight, X } from "lucide-react";
 
 /**
- * For each route the wizard might point to, try to find a specific
- * actionable element on the current page first, then fall back to the nav tab.
+ * Smart target finding:
+ * - If we're on the target page, find the first quest card or content element
+ * - Otherwise point to the nav tab
  */
-function findTargetElement(route: string): HTMLElement | null {
-  // Try the nav tab — always visible and reliably findable
+function findTargetElement(route: string, currentPath: string): HTMLElement | null {
+  if (currentPath === route) {
+    // On the target page — find the first actionable quest card
+    const firstQuest = document.querySelector<HTMLElement>("[data-wizard-quest='first']");
+    if (firstQuest) return firstQuest;
+
+    // Fallback: first card on the page
+    const firstCard = document.querySelector<HTMLElement>("[data-wizard-target] .border-2");
+    if (firstCard) return firstCard;
+  }
+
+  // Not on target page — point to the nav tab
   const navTab = document.querySelector<HTMLElement>(`a[href="${route}"]`);
   if (navTab) return navTab;
   return null;
@@ -35,46 +46,45 @@ export function WizardGuide() {
     if (!currentStep || dismissed) { setReady(false); return; }
 
     const findTarget = () => {
-      const el = findTargetElement(currentStep.route);
+      const el = findTargetElement(currentStep.route, location.pathname);
 
       if (el) {
         const rect = el.getBoundingClientRect();
         setTargetRect(rect);
 
-        // Position wizard to the left of the target element
-        let wx = rect.left - WIZARD_W - 16;
+        // Position wizard to the LEFT of the target, offset enough to not overlap content
+        let wx = rect.left - WIZARD_W - 12;
         let wy = rect.top + rect.height / 2 - WIZARD_H / 2;
 
-        // If no room on the left, try right side
+        // If no room on left, try right
         if (wx < 10) {
-          wx = rect.right + 16;
+          wx = rect.right + 12;
         }
 
-        // If still no room (very wide element), go above
+        // If still no room, go above
         if (wx + WIZARD_W > window.innerWidth - 10) {
           wx = rect.left + rect.width / 2 - WIZARD_W / 2;
-          wy = rect.top - WIZARD_H - 16;
+          wy = rect.top - WIZARD_H - 12;
         }
 
-        // Clamp to viewport
+        // Clamp — keep below header (top ~140px) and above bottom
         wx = Math.max(10, Math.min(window.innerWidth - WIZARD_W - 10, wx));
-        wy = Math.max(80, Math.min(window.innerHeight - WIZARD_H - 50, wy));
+        wy = Math.max(140, Math.min(window.innerHeight - WIZARD_H - 40, wy));
 
         setWizardPos({ x: wx, y: wy });
         setReady(true);
       } else {
         setTargetRect(null);
-        // Default: center-bottom
+        // Default: left side, vertically centered below header
         setWizardPos({
-          x: window.innerWidth / 2 - WIZARD_W / 2,
-          y: window.innerHeight - WIZARD_H - 80,
+          x: 20,
+          y: window.innerHeight / 2 - WIZARD_H / 2,
         });
         setReady(true);
       }
     };
 
-    // Delay initial find to let page render
-    const initialTimeout = setTimeout(findTarget, 300);
+    const initialTimeout = setTimeout(findTarget, 400);
     const interval = setInterval(findTarget, 2000);
     window.addEventListener("scroll", findTarget, true);
 
@@ -89,21 +99,13 @@ export function WizardGuide() {
 
   const handleAction = () => {
     sfx.click();
-    navigate(currentStep.route);
+    if (location.pathname !== currentStep.route) {
+      navigate(currentStep.route);
+    }
   };
 
-  // Arrow angle from wizard center to target center
-  let arrowAngle = 0;
-  let arrowLen = 40;
-  if (targetRect) {
-    const wizCx = wizardPos.x + WIZARD_W / 2;
-    const wizCy = wizardPos.y + WIZARD_H / 2;
-    const targetCx = targetRect.left + targetRect.width / 2;
-    const targetCy = targetRect.top + targetRect.height / 2;
-    arrowAngle = Math.atan2(targetCy - wizCy, targetCx - wizCx) * (180 / Math.PI);
-    const dist = Math.sqrt((targetCx - wizCx) ** 2 + (targetCy - wizCy) ** 2);
-    arrowLen = Math.min(60, Math.max(20, dist * 0.3));
-  }
+  // Whether we're already on the target page
+  const onTargetPage = location.pathname === currentStep.route;
 
   return (
     <>
@@ -111,29 +113,24 @@ export function WizardGuide() {
       {targetRect && (
         <motion.div
           className="fixed z-40 pointer-events-none rounded-md"
-          animate={{
-            opacity: [0.6, 1, 0.6],
-          }}
+          animate={{ opacity: [0.5, 0.9, 0.5] }}
           transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
           style={{
             left: targetRect.left - 3,
             top: targetRect.top - 3,
             width: targetRect.width + 6,
             height: targetRect.height + 6,
-            boxShadow: "0 0 0 2px hsl(var(--primary) / 0.6), 0 0 16px 2px hsl(var(--primary) / 0.25)",
+            boxShadow: "0 0 0 2px hsl(var(--primary) / 0.5), 0 0 14px 2px hsl(var(--primary) / 0.2)",
           }}
         />
       )}
 
-      {/* Free-floating wizard */}
+      {/* Free-floating wizard — uses "pointing" mood when staff should aim at target */}
       <motion.div
         ref={wizardRef}
         className="fixed z-50 pointer-events-auto"
         initial={{ opacity: 0, scale: 0.3 }}
-        animate={{
-          opacity: 1,
-          scale: 1,
-        }}
+        animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 100, damping: 18 }}
         style={{
           width: WIZARD_W,
@@ -150,64 +147,41 @@ export function WizardGuide() {
           <X className="h-2.5 w-2.5" />
         </button>
 
-        {/* The pixel wizard — no container */}
+        {/* The pixel wizard — staff points at target via "pointing" mood */}
         <div className="w-full h-full" style={{ imageRendering: "pixelated" }}>
-          <WizardAvatar3DCanvas mood={mood} />
+          <WizardAvatar3DCanvas mood={targetRect ? "pointing" : mood} />
         </div>
-
-        {/* Pointing arrow */}
-        {targetRect && (
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              left: "50%",
-              top: "50%",
-              transformOrigin: "0 50%",
-              transform: `rotate(${arrowAngle}deg)`,
-            }}
-          >
-            <motion.div
-              className="flex items-center"
-              animate={{ x: [0, 6, 0] }}
-              transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}
-            >
-              <div
-                className="h-[2px] bg-primary/70"
-                style={{ width: arrowLen }}
-              />
-              <div className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[7px] border-l-primary/90" />
-            </motion.div>
-          </div>
-        )}
 
         {/* Speech text above wizard */}
         <motion.div
           className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-          style={{ top: -24 }}
+          style={{ top: -20 }}
           animate={{ y: [0, -2, 0] }}
           transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
         >
           <span className="font-pixel text-[7px] text-primary whitespace-nowrap">
-            {mood === "concerned" ? "⚠ Needs attention!" 
+            {mood === "concerned" ? "⚠ Needs attention!"
               : mood === "celebrating" ? "✨ Great job!"
               : mood === "thinking" ? "🤔 Hmm..."
               : "👉 Do this next!"}
           </span>
         </motion.div>
 
-        {/* Action label below wizard */}
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
-          style={{ bottom: -20 }}
-        >
-          <button
-            onClick={handleAction}
-            className="font-pixel text-[7px] text-primary/80 hover:text-primary transition-colors cursor-pointer flex items-center gap-0.5"
+        {/* Action label below wizard — only show nav action if not already on page */}
+        {!onTargetPage && (
+          <motion.div
+            className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
+            style={{ bottom: -16 }}
           >
-            {currentStep.action}
-            <ChevronRight className="h-2.5 w-2.5" />
-          </button>
-        </motion.div>
+            <button
+              onClick={handleAction}
+              className="font-pixel text-[7px] text-primary/80 hover:text-primary transition-colors cursor-pointer flex items-center gap-0.5"
+            >
+              {currentStep.action}
+              <ChevronRight className="h-2.5 w-2.5" />
+            </button>
+          </motion.div>
+        )}
       </motion.div>
     </>
   );
