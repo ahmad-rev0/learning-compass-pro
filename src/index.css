@@ -103,7 +103,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Jersey 10', monospace;
-    font-size: 12px;
+    font-size: 18px;
     line-height: 1.5;
     letter-spacing: 0.02em;
     image-rendering: pixelated;
