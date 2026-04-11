@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { sfx } from "@/lib/retroSfx";
 import atlasLogo from "@/assets/atlas-logo.png";
 import { SplashScreen } from "@/components/SplashScreen";
+import { WizardGuide } from "@/components/WizardGuide";
 
 const TEACHER_NAV = [
   { to: "/teacher/courses", icon: BookOpen, label: "COURSES" },
@@ -161,6 +162,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
       </main>
 
       <DemoTour />
+      {effectiveRole === "student" && <WizardGuide />}
     </div>
   );
 }
