@@ -31,8 +31,8 @@ function drawWizard(
   frame: number,
   mood: WizardMood
 ) {
-  const px = Math.floor(Math.min(w / 32, h / 48));
-  const ox = Math.floor((w - 32 * px) / 2);
+  const px = Math.floor(Math.min(w / 36, h / 48));
+  const ox = Math.floor((w - 36 * px) / 2);
   const oy = Math.floor((h - 48 * px) / 2);
 
   const p = (x: number, y: number, color: string) => {
