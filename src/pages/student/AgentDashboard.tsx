@@ -62,7 +62,7 @@ export default function AgentDashboard() {
   const cfg = STATE_CONFIG[latestState] || STATE_CONFIG.normal;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-wizard-target="agent">
       <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
         <Brain className="h-4 w-4" /> AGENT BRAIN
       </h2>

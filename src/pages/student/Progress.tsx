@@ -53,7 +53,7 @@ export default function StudentProgress() {
   const xpProgress = progress ? ((progress.xp % xpForNext) / xpForNext) * 100 : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-wizard-target="progress">
       <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
         <TrendingUp className="h-4 w-4" /> MY PROGRESS
       </h2>

@@ -144,7 +144,7 @@ export default function StudentAchievements() {
   const claimed = generated.filter((a: any) => a.claimed);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-wizard-target="achievements">
       <div className="flex items-center justify-between">
         <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
           <Trophy className="h-4 w-4" /> ACHIEVEMENTS
