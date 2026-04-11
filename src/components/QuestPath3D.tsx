@@ -10,6 +10,7 @@ interface QuestNode {
   xp: number;
   type: "recovery" | "growth" | "sidequest";
   mastery: number;
+  resourceUrl?: string | null;
 }
 
 /* ── Mastery-scaled values ── */
@@ -202,40 +203,63 @@ function MasteryParticles({ color, mastery }: { color: string; mastery: number }
   );
 }
 
-/* ── Ladder connecting two platforms ── */
+/* ── Proper rope-bridge ladder connecting two platforms ── */
 function Ladder({ from, to, completed }: { from: [number, number, number]; to: [number, number, number]; completed: boolean }) {
-  const ladderParts = useMemo(() => {
+  const parts = useMemo(() => {
     const start = new THREE.Vector3(...from);
     const end = new THREE.Vector3(...to);
     const dir = end.clone().sub(start);
     const length = dir.length();
-    const rungCount = Math.max(3, Math.floor(length / 0.45));
-    const rungs: THREE.Vector3[] = [];
-    for (let i = 0; i <= rungCount; i++) rungs.push(start.clone().lerp(end.clone(), i / rungCount));
-    return { length, rungs };
+    const midPoint = start.clone().add(end).multiplyScalar(0.5);
+    const up = dir.clone().normalize();
+
+    // Quaternion to orient cylinder along the direction
+    const quat = new THREE.Quaternion();
+    quat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), up);
+
+    // Perpendicular vector for rail spacing
+    const arbitrary = Math.abs(up.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 0, 1);
+    const perp = new THREE.Vector3().crossVectors(up, arbitrary).normalize();
+
+    const railSpacing = 0.15;
+    const rungCount = Math.max(3, Math.floor(length / 0.5));
+    const rungs: { pos: THREE.Vector3; perpDir: THREE.Vector3 }[] = [];
+    for (let i = 1; i < rungCount; i++) {
+      const t = i / rungCount;
+      const p = start.clone().lerp(end.clone(), t);
+      rungs.push({ pos: p, perpDir: perp.clone() });
+    }
+
+    return { midPoint, length, quat, perp, railSpacing, rungs };
   }, [from, to]);
+
   const woodColor = completed ? "#a0785a" : "#7a6552";
   const ropeColor = completed ? "#c4a97d" : "#8a7a6a";
+
+  const euler = useMemo(() => new THREE.Euler().setFromQuaternion(parts.quat), [parts.quat]);
+
   return (
     <group>
-      {[-0.12, 0.12].map((offset, idx) => {
-        const angle = Math.atan2(to[0] - from[0], to[2] - from[2]);
-        const railStart = new THREE.Vector3(from[0] + Math.cos(angle + Math.PI / 2) * offset, from[1], from[2] - Math.sin(angle + Math.PI / 2) * offset);
-        const railEnd = new THREE.Vector3(to[0] + Math.cos(angle + Math.PI / 2) * offset, to[1], to[2] - Math.sin(angle + Math.PI / 2) * offset);
-        const railMid = railStart.clone().add(railEnd).multiplyScalar(0.5);
-        const railDir = railEnd.clone().sub(railStart);
-        const railLen = railDir.length();
+      {/* Two side rails */}
+      {[-1, 1].map((side, idx) => {
+        const offset = parts.perp.clone().multiplyScalar(side * parts.railSpacing);
+        const railPos = parts.midPoint.clone().add(offset);
         return (
-          <mesh key={`rail-${idx}`} position={railMid.toArray()} rotation={[Math.atan2(railDir.y, Math.sqrt(railDir.x ** 2 + railDir.z ** 2)), Math.atan2(railDir.x, railDir.z), 0]}>
-            <cylinderGeometry args={[0.025, 0.025, railLen, 4]} /><meshStandardMaterial color={woodColor} roughness={0.85} />
+          <mesh key={`rail-${idx}`} position={railPos.toArray()} rotation={euler}>
+            <cylinderGeometry args={[0.022, 0.022, parts.length * 0.92, 6]} />
+            <meshStandardMaterial color={woodColor} roughness={0.85} />
           </mesh>
         );
       })}
-      {ladderParts.rungs.map((pos, i) => {
-        const crossDir = new THREE.Vector3(to[0] - from[0], 0, to[2] - from[2]).normalize().cross(new THREE.Vector3(0, 1, 0)).normalize();
+      {/* Rungs perpendicular to direction */}
+      {parts.rungs.map((rung, i) => {
+        const rungQuat = new THREE.Quaternion();
+        rungQuat.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rung.perpDir);
+        const rungEuler = new THREE.Euler().setFromQuaternion(rungQuat);
         return (
-          <mesh key={`rung-${i}`} position={pos.toArray()} rotation={[0, Math.atan2(crossDir.x, crossDir.z) + Math.PI / 2, 0]}>
-            <cylinderGeometry args={[0.018, 0.018, 0.24, 4]} /><meshStandardMaterial color={ropeColor} roughness={0.8} />
+          <mesh key={`rung-${i}`} position={rung.pos.toArray()} rotation={rungEuler}>
+            <cylinderGeometry args={[0.016, 0.016, parts.railSpacing * 2, 4]} />
+            <meshStandardMaterial color={ropeColor} roughness={0.8} />
           </mesh>
         );
       })}
@@ -266,7 +290,6 @@ function HotAirBalloon({
   useFrame((state) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    // Gentle floating bob
     groupRef.current.position.y = position[1] + Math.sin(t * 0.4 + index * 1.3) * 0.25;
     groupRef.current.position.x = position[0] + Math.sin(t * 0.25 + index * 0.7) * 0.15;
     groupRef.current.rotation.y = Math.sin(t * 0.15 + index) * 0.06;
@@ -279,7 +302,6 @@ function HotAirBalloon({
         onPointerOver={() => { setHovered(true); document.body.style.cursor = "pointer"; }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = "auto"; }}
       >
-        {/* Envelope (balloon) */}
         <mesh position={[0, 1.1, 0]}>
           <sphereGeometry args={[0.65, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.75]} />
           <meshStandardMaterial
@@ -290,45 +312,76 @@ function HotAirBalloon({
             side={THREE.DoubleSide}
           />
         </mesh>
-        {/* Stripe bands */}
         {[0.2, 0.5, 0.8].map((yOff, i) => (
           <mesh key={i} position={[0, 0.6 + yOff * 0.9, 0]}>
             <torusGeometry args={[0.55 - yOff * 0.15, 0.025, 6, 16]} />
             <meshStandardMaterial color={stripeColor} roughness={0.5} />
           </mesh>
         ))}
-        {/* Basket */}
         <mesh position={[0, 0.0, 0]}>
           <cylinderGeometry args={[0.22, 0.18, 0.2, 8]} />
           <meshStandardMaterial color="#8b6914" roughness={0.7} metalness={0.1} />
         </mesh>
-        {/* Ropes */}
         {[[-0.15, 0, -0.15], [0.15, 0, -0.15], [-0.15, 0, 0.15], [0.15, 0, 0.15]].map((off, i) => (
           <mesh key={`rope-${i}`} position={[off[0], 0.5, off[2]]}>
             <cylinderGeometry args={[0.008, 0.008, 0.9, 3]} />
             <meshStandardMaterial color="#c4a97d" roughness={0.8} />
           </mesh>
         ))}
-        {/* Flame glow */}
         {node.status !== "locked" && (
           <pointLight position={[0, 0.35, 0]} color="#ff8800" intensity={1.2} distance={3} decay={2} />
         )}
       </group>
 
-      {/* XP Badge */}
       <group position={[0, -0.25, 0.4]}>
         <mesh><planeGeometry args={[0.6, 0.24]} /><meshBasicMaterial color="#000000" transparent opacity={0.65} /></mesh>
         <Text position={[0, 0.005, 0.01]} fontSize={0.14} color="#FFD700" anchorX="center" anchorY="middle" outlineWidth={0.015} outlineColor="#8B6914" fontWeight="bold">
           {`+${node.xp} XP`}
         </Text>
       </group>
-      {/* Label */}
       <group position={[0, -0.55, 0.4]}>
         <mesh><planeGeometry args={[1.0, 0.2]} /><meshBasicMaterial color="#000000" transparent opacity={0.5} /></mesh>
         <Text position={[0, 0.005, 0.01]} fontSize={0.09} color="#88ddff" anchorX="center" anchorY="middle" maxWidth={0.9}>
           🎈 SIDE QUEST
         </Text>
       </group>
+    </group>
+  );
+}
+
+/* ── Sunlight rays (volumetric god rays) ── */
+function SunlightRays() {
+  const groupRef = useRef<THREE.Group>(null);
+  const rays = useMemo(() => {
+    return Array.from({ length: 8 }, (_, i) => ({
+      angle: (i / 8) * Math.PI * 0.6 - Math.PI * 0.15,
+      width: 0.3 + Math.random() * 0.5,
+      length: 18 + Math.random() * 8,
+      opacity: 0.04 + Math.random() * 0.04,
+      speed: 0.1 + Math.random() * 0.15,
+    }));
+  }, []);
+
+  useFrame((state) => {
+    if (!groupRef.current) return;
+    const t = state.clock.elapsedTime;
+    groupRef.current.children.forEach((child, i) => {
+      const ray = rays[i];
+      if (ray && child instanceof THREE.Mesh) {
+        (child.material as THREE.MeshBasicMaterial).opacity =
+          ray.opacity + Math.sin(t * ray.speed + i * 1.5) * 0.02;
+      }
+    });
+  });
+
+  return (
+    <group ref={groupRef} position={[8, 16, 6]} rotation={[-0.6, -0.4, 0.2]}>
+      {rays.map((ray, i) => (
+        <mesh key={i} position={[Math.cos(ray.angle) * 3, 0, Math.sin(ray.angle) * 3]} rotation={[0, 0, ray.angle]}>
+          <planeGeometry args={[ray.width, ray.length]} />
+          <meshBasicMaterial color="#fff5d4" transparent opacity={ray.opacity} side={THREE.DoubleSide} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -341,27 +394,35 @@ function EarthGlobe() {
   const continents = useMemo(() => {
     const patches: Array<{ pos: THREE.Vector3; scale: number; color: string }> = [];
     const landPositions = [
-      // More numerous + larger green land masses
-      { lat: 0.6, lon: -0.3, s: 0.8, c: "#4a8a4a" },
-      { lat: 0.7, lon: 0.3, s: 0.65, c: "#5b9b5a" },
-      { lat: 0.3, lon: -1.0, s: 0.7, c: "#3a7a3a" },
-      { lat: -0.2, lon: -0.8, s: 0.9, c: "#5b8c5a" },
-      { lat: -0.5, lon: 0.5, s: 0.6, c: "#4a8a4a" },
-      { lat: 0.1, lon: 1.2, s: 0.75, c: "#3a7a3a" },
-      { lat: 0.8, lon: 1.5, s: 0.5, c: "#5b9b5a" },
-      { lat: -0.7, lon: -0.1, s: 0.5, c: "#6ba56b" },
-      { lat: 0.4, lon: 2.0, s: 0.7, c: "#4a8a4a" },
-      { lat: -0.3, lon: 2.5, s: 0.6, c: "#3a7a3a" },
-      { lat: 0.0, lon: -0.1, s: 0.85, c: "#5b8c5a" },
-      { lat: -0.4, lon: 1.6, s: 0.55, c: "#6ba56b" },
-      { lat: 0.5, lon: -1.8, s: 0.6, c: "#4a8a4a" },
-      { lat: -0.6, lon: -1.2, s: 0.5, c: "#3a7a3a" },
-      { lat: 0.2, lon: 0.8, s: 0.7, c: "#5b9b5a" },
-      { lat: -0.1, lon: -2.2, s: 0.55, c: "#6ba56b" },
-      { lat: 0.9, lon: -0.8, s: 0.45, c: "#4a8a4a" },
-      { lat: -0.8, lon: 1.0, s: 0.4, c: "#5b8c5a" },
+      { lat: 0.6, lon: -0.3, s: 0.9, c: "#4a8a4a" },
+      { lat: 0.7, lon: 0.3, s: 0.75, c: "#5b9b5a" },
+      { lat: 0.3, lon: -1.0, s: 0.8, c: "#3a7a3a" },
+      { lat: -0.2, lon: -0.8, s: 1.0, c: "#5b8c5a" },
+      { lat: -0.5, lon: 0.5, s: 0.7, c: "#4a8a4a" },
+      { lat: 0.1, lon: 1.2, s: 0.85, c: "#3a7a3a" },
+      { lat: 0.8, lon: 1.5, s: 0.6, c: "#5b9b5a" },
+      { lat: -0.7, lon: -0.1, s: 0.6, c: "#6ba56b" },
+      { lat: 0.4, lon: 2.0, s: 0.8, c: "#4a8a4a" },
+      { lat: -0.3, lon: 2.5, s: 0.7, c: "#3a7a3a" },
+      { lat: 0.0, lon: -0.1, s: 0.95, c: "#5b8c5a" },
+      { lat: -0.4, lon: 1.6, s: 0.65, c: "#6ba56b" },
+      { lat: 0.5, lon: -1.8, s: 0.7, c: "#4a8a4a" },
+      { lat: -0.6, lon: -1.2, s: 0.6, c: "#3a7a3a" },
+      { lat: 0.2, lon: 0.8, s: 0.8, c: "#5b9b5a" },
+      { lat: -0.1, lon: -2.2, s: 0.65, c: "#6ba56b" },
+      { lat: 0.9, lon: -0.8, s: 0.55, c: "#4a8a4a" },
+      { lat: -0.8, lon: 1.0, s: 0.5, c: "#5b8c5a" },
+      // Extra green patches
+      { lat: 0.35, lon: -0.6, s: 0.75, c: "#4d9040" },
+      { lat: -0.15, lon: 1.8, s: 0.85, c: "#3d8a35" },
+      { lat: 0.55, lon: 0.9, s: 0.65, c: "#58a555" },
+      { lat: -0.45, lon: -1.5, s: 0.7, c: "#4a9a48" },
+      { lat: 0.75, lon: -1.3, s: 0.55, c: "#5ba55a" },
+      { lat: -0.65, lon: 0.7, s: 0.6, c: "#3f8f3d" },
+      { lat: 0.15, lon: -1.6, s: 0.8, c: "#52a050" },
+      { lat: -0.35, lon: -0.3, s: 0.9, c: "#48954a" },
     ];
-    const r = 4.95; // slightly inside sphere radius 5
+    const r = 5.9;
     for (const l of landPositions) {
       const phi = Math.PI / 2 - l.lat;
       const theta = l.lon;
@@ -383,27 +444,23 @@ function EarthGlobe() {
   });
 
   return (
-    <group position={[0, -9, -3]}>
+    <group position={[0, -11, -3]}>
       <group ref={earthRef}>
-        {/* Ocean sphere — radius 5 */}
         <mesh>
-          <sphereGeometry args={[5, 48, 48]} />
+          <sphereGeometry args={[6, 48, 48]} />
           <meshStandardMaterial color="#1a5a96" roughness={0.5} metalness={0.15} emissive="#0d3a6c" emissiveIntensity={0.15} />
         </mesh>
-        {/* Land masses */}
         {continents.map((c, i) => (
           <mesh key={i} position={c.pos.toArray()}>
-            <sphereGeometry args={[c.scale * 0.6, 10, 10]} />
+            <sphereGeometry args={[c.scale * 0.7, 10, 10]} />
             <meshStandardMaterial color={c.color} roughness={0.75} emissive={c.color} emissiveIntensity={0.12} />
           </mesh>
         ))}
-        {/* Ice caps */}
-        <mesh position={[0, 4.9, 0]}><sphereGeometry args={[0.9, 12, 12]} /><meshStandardMaterial color="#e8eef5" roughness={0.4} emissive="#c0d0e0" emissiveIntensity={0.1} /></mesh>
-        <mesh position={[0, -4.9, 0]}><sphereGeometry args={[0.7, 12, 12]} /><meshStandardMaterial color="#e8eef5" roughness={0.4} emissive="#c0d0e0" emissiveIntensity={0.1} /></mesh>
+        <mesh position={[0, 5.9, 0]}><sphereGeometry args={[1.0, 12, 12]} /><meshStandardMaterial color="#e8eef5" roughness={0.4} emissive="#c0d0e0" emissiveIntensity={0.1} /></mesh>
+        <mesh position={[0, -5.9, 0]}><sphereGeometry args={[0.8, 12, 12]} /><meshStandardMaterial color="#e8eef5" roughness={0.4} emissive="#c0d0e0" emissiveIntensity={0.1} /></mesh>
       </group>
-      {/* Atmosphere glow */}
-      <mesh ref={atmosphereRef}><sphereGeometry args={[5.3, 48, 48]} /><meshBasicMaterial color="#6ab7ff" transparent opacity={0.07} side={THREE.BackSide} /></mesh>
-      <mesh><sphereGeometry args={[5.6, 48, 48]} /><meshBasicMaterial color="#88ccff" transparent opacity={0.035} side={THREE.BackSide} /></mesh>
+      <mesh ref={atmosphereRef}><sphereGeometry args={[6.4, 48, 48]} /><meshBasicMaterial color="#6ab7ff" transparent opacity={0.07} side={THREE.BackSide} /></mesh>
+      <mesh><sphereGeometry args={[6.8, 48, 48]} /><meshBasicMaterial color="#88ccff" transparent opacity={0.035} side={THREE.BackSide} /></mesh>
     </group>
   );
 }
@@ -446,19 +503,34 @@ function CloudPuff({ position, scale, speed }: { position: [number, number, numb
   );
 }
 
-/* ── Camera controller ── */
+/* ── Camera controller — right-click pan enabled ── */
 function CameraController({ nodeCount }: { nodeCount: number }) {
   const { camera } = useThree();
   const controlsRef = useRef<any>(null);
   useEffect(() => {
     const baseY = 0.5;
-    const targetY = 1.0;
     camera.position.set(6, baseY + 3, 10);
-    camera.lookAt(0, targetY, -2);
+    camera.lookAt(0, 1.0, -2);
   }, [camera, nodeCount]);
   return (
-    <OrbitControls ref={controlsRef} enablePan={false} enableZoom={true} minDistance={6} maxDistance={22}
-      maxPolarAngle={Math.PI / 1.8} minPolarAngle={Math.PI / 8} target={[0, 2, -2]} enableDamping dampingFactor={0.05} />
+    <OrbitControls
+      ref={controlsRef}
+      enablePan={true}
+      enableZoom={true}
+      minDistance={6}
+      maxDistance={22}
+      maxPolarAngle={Math.PI / 1.8}
+      minPolarAngle={Math.PI / 8}
+      target={[0, 2, -2]}
+      enableDamping
+      dampingFactor={0.05}
+      mouseButtons={{
+        LEFT: THREE.MOUSE.ROTATE,
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.PAN,
+      }}
+      panSpeed={0.8}
+    />
   );
 }
 
@@ -468,7 +540,6 @@ function QuestScene({
 }: {
   nodes: QuestNode[]; sideQuests: QuestNode[]; selectedId: string | null; onSelect: (id: string) => void;
 }) {
-  // Main quest positions — MORE SPACED OUT (y * 1.2 instead of 0.7, z * 2.8)
   const positions = useMemo<[number, number, number][]>(() => {
     return nodes.map((_, i) => {
       const row = Math.floor(i / 2);
@@ -481,7 +552,6 @@ function QuestScene({
     });
   }, [nodes]);
 
-  // Side quest balloon positions — flanking left and right
   const balloonPositions = useMemo<[number, number, number][]>(() => {
     return sideQuests.map((_, i) => {
       const side = i % 2 === 0 ? -1 : 1;
@@ -501,6 +571,7 @@ function QuestScene({
       <spotLight position={[0, 12, 0]} angle={0.5} penumbra={0.8} intensity={0.6} color="#ffd699" castShadow />
       <hemisphereLight color="#ffe8cc" groundColor="#5a4a3a" intensity={0.5} />
 
+      <SunlightRays />
       <EarthGlobe />
       <CompassRose />
       <Clouds />
@@ -532,7 +603,7 @@ export function QuestPath3D({
 }: {
   quests: Array<{
     id: string; title: string; status: string; xp_reward: number;
-    type: string; description?: string | null;
+    type: string; description?: string | null; resource_url?: string | null;
   }>;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -557,6 +628,7 @@ export function QuestPath3D({
         xp: q.xp_reward,
         type: (q.type === "sidequest" ? "sidequest" : q.type === "recovery" ? "recovery" : "growth") as QuestNode["type"],
         mastery: q.status === "completed" ? 1.0 : q.xp_reward / maxXp,
+        resourceUrl: q.resource_url,
       };
       if (q.type === "sidequest") {
         side.push(node);
@@ -581,7 +653,7 @@ export function QuestPath3D({
         </div>
       </div>
 
-      <div style={{ height: "480px", width: "100%" }}>
+      <div style={{ height: "480px", width: "100%" }} onContextMenu={(e) => e.preventDefault()}>
         <Canvas camera={{ position: [6, 3, 10], fov: 42 }} shadows dpr={[1, 1.5]}
           gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}>
           <Suspense fallback={null}>
@@ -593,7 +665,7 @@ export function QuestPath3D({
       </div>
 
       {selectedNode && (
-        <div className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t-2 border-border p-3 cursor-pointer animate-fade-in" onClick={() => setSelectedId(null)}>
+        <div className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t-2 border-border p-3 animate-fade-in">
           <div className="flex items-center gap-2">
             <span className={`w-3 h-3 rounded-full shrink-0 shadow-lg ${
               selectedNode.type === "sidequest" ? "bg-[#f39c12] shadow-[0_0_8px_#f39c12]"
@@ -613,6 +685,25 @@ export function QuestPath3D({
               ? `★ Completed! Mastery: ${Math.round(selectedNode.mastery * 100)}%`
               : `⚔ In Progress — Mastery: ${Math.round(selectedNode.mastery * 100)}%`}
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            {selectedNode.resourceUrl && (
+              <a
+                href={selectedNode.resourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] font-pixel px-2 py-1 rounded bg-primary/20 text-primary hover:bg-primary/30 transition-colors border border-primary/30"
+                onClick={(e) => e.stopPropagation()}
+              >
+                📚 Open Resource ↗
+              </a>
+            )}
+            <button
+              className="text-[10px] font-pixel px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:bg-muted transition-colors ml-auto"
+              onClick={() => setSelectedId(null)}
+            >
+              ✕ Close
+            </button>
+          </div>
         </div>
       )}
     </div>
