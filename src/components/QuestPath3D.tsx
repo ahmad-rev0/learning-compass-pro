@@ -1,6 +1,6 @@
 import { useRef, useState, useMemo, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Text, Float, Environment, MeshWobbleMaterial, RoundedBox } from "@react-three/drei";
+import { Text, Float, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 interface QuestNode {
@@ -25,8 +25,7 @@ function Platform({
   onSelect: (id: string) => void;
   isSelected: boolean;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
 
   const colors = useMemo(() => {
@@ -39,82 +38,99 @@ function Platform({
   const emoji = node.status === "completed" ? "✓" : node.status === "active" ? "!" : "?";
 
   useFrame((state) => {
-    if (!meshRef.current) return;
+    if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
     // Gentle bob
-    meshRef.current.position.y = position[1] + Math.sin(t * 0.8 + index * 1.2) * 0.08;
+    groupRef.current.position.y = position[1] + Math.sin(t * 0.8 + index * 1.2) * 0.12;
     // Scale pulse for active
     if (node.status === "active") {
-      const s = 1 + Math.sin(t * 2 + index) * 0.04;
-      meshRef.current.scale.set(s, s, s);
-    }
-    // Glow ring
-    if (glowRef.current && (node.status === "active" || isSelected)) {
-      glowRef.current.rotation.y = t * 0.5;
-      const gs = 1 + Math.sin(t * 3) * 0.1;
-      glowRef.current.scale.set(gs, gs, gs);
+      const s = 1 + Math.sin(t * 2 + index) * 0.05;
+      groupRef.current.scale.set(s, s, s);
     }
   });
 
   return (
-    <group position={position}>
-      {/* Platform */}
-      <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.3} floatingRange={[-0.02, 0.02]}>
+    <group ref={groupRef} position={position}>
+      <Float speed={1.5} rotationIntensity={0.05} floatIntensity={0.2}>
+        {/* Platform box */}
         <mesh
-          ref={meshRef}
           onClick={(e) => { e.stopPropagation(); onSelect(node.id); }}
           onPointerOver={() => { setHovered(true); document.body.style.cursor = "pointer"; }}
           onPointerOut={() => { setHovered(false); document.body.style.cursor = "auto"; }}
           castShadow
           receiveShadow
         >
-          <RoundedBox args={[1.4, 0.3, 1.4]} radius={0.08} smoothness={4}>
-            <meshStandardMaterial
-              color={hovered || isSelected ? colors.glow : colors.base}
-              emissive={colors.emissive}
-              emissiveIntensity={hovered || isSelected ? 0.6 : 0.2}
-              roughness={0.3}
-              metalness={0.4}
-            />
-          </RoundedBox>
-
-          {/* Icon on top */}
-          <Text
-            position={[0, 0.25, 0]}
-            fontSize={0.35}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-            font="https://fonts.gstatic.com/s/pressstart2p/v15/e3t4euO8T-267oIAQAu6jDQyK3nVivM.woff2"
-          >
-            {emoji}
-          </Text>
-
-          {/* XP label */}
-          <Text
-            position={[0, -0.25, 0.72]}
-            fontSize={0.12}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-            rotation={[-Math.PI / 6, 0, 0]}
-          >
-            {`+${node.xp} XP`}
-          </Text>
+          <boxGeometry args={[1.4, 0.3, 1.4]} />
+          <meshStandardMaterial
+            color={hovered || isSelected ? colors.glow : colors.base}
+            emissive={colors.emissive}
+            emissiveIntensity={hovered || isSelected ? 0.6 : 0.25}
+            roughness={0.3}
+            metalness={0.4}
+          />
         </mesh>
+
+        {/* Top face detail — slightly raised inner platform */}
+        <mesh position={[0, 0.16, 0]}>
+          <boxGeometry args={[1.0, 0.04, 1.0]} />
+          <meshStandardMaterial
+            color={colors.glow}
+            emissive={colors.emissive}
+            emissiveIntensity={0.4}
+            roughness={0.2}
+            metalness={0.5}
+          />
+        </mesh>
+
+        {/* Icon on top */}
+        <Text
+          position={[0, 0.35, 0]}
+          fontSize={0.3}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+        >
+          {emoji}
+        </Text>
+
+        {/* XP label */}
+        <Text
+          position={[0, -0.05, 0.75]}
+          fontSize={0.13}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+          rotation={[-0.3, 0, 0]}
+        >
+          {`+${node.xp} XP`}
+        </Text>
       </Float>
 
       {/* Glow ring for active/selected */}
       {(node.status === "active" || isSelected) && (
-        <mesh ref={glowRef} position={[0, 0, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.9, 0.03, 8, 32]} />
-          <meshBasicMaterial color={colors.glow} transparent opacity={0.5} />
-        </mesh>
+        <GlowRing color={colors.glow} />
       )}
 
-      {/* Completion particles */}
+      {/* Completion sparkles */}
       {node.status === "completed" && <CompletionParticles color={colors.glow} />}
     </group>
+  );
+}
+
+function GlowRing({ color }: { color: string }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.z = state.clock.elapsedTime * 0.5;
+      const s = 1 + Math.sin(state.clock.elapsedTime * 3) * 0.1;
+      ref.current.scale.set(s, s, s);
+    }
+  });
+  return (
+    <mesh ref={ref} rotation={[Math.PI / 2, 0, 0]}>
+      <torusGeometry args={[0.9, 0.03, 8, 32]} />
+      <meshBasicMaterial color={color} transparent opacity={0.5} />
+    </mesh>
   );
 }
 
@@ -133,8 +149,7 @@ function CompletionParticles({ color }: { color: string }) {
   }, []);
 
   useFrame((state) => {
-    if (!ref.current) return;
-    ref.current.rotation.y = state.clock.elapsedTime * 0.3;
+    if (ref.current) ref.current.rotation.y = state.clock.elapsedTime * 0.3;
   });
 
   return (
@@ -142,7 +157,7 @@ function CompletionParticles({ color }: { color: string }) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={0.06} color={color} transparent opacity={0.8} sizeAttenuation />
+      <pointsMaterial size={0.08} color={color} transparent opacity={0.8} sizeAttenuation />
     </points>
   );
 }
@@ -157,10 +172,10 @@ function PathConnector({
   to: [number, number, number];
   completed: boolean;
 }) {
-  const points = useMemo(() => {
+  const geometry = useMemo(() => {
     const mid: [number, number, number] = [
       (from[0] + to[0]) / 2,
-      Math.max(from[1], to[1]) + 0.4,
+      Math.max(from[1], to[1]) + 0.5,
       (from[2] + to[2]) / 2,
     ];
     const curve = new THREE.QuadraticBezierCurve3(
@@ -168,24 +183,27 @@ function PathConnector({
       new THREE.Vector3(...mid),
       new THREE.Vector3(...to)
     );
-    return curve.getPoints(20);
+    return new THREE.TubeGeometry(curve, 20, 0.03, 6, false);
   }, [from, to]);
 
   return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[new Float32Array(points.flatMap((p) => [p.x, p.y, p.z])), 3]}
-        />
-      </bufferGeometry>
-      <lineBasicMaterial
+    <mesh geometry={geometry}>
+      <meshBasicMaterial
         color={completed ? "#22c55e" : "#6b7280"}
         transparent
         opacity={completed ? 0.8 : 0.3}
-        linewidth={2}
       />
-    </line>
+    </mesh>
+  );
+}
+
+/* ── Background grid ── */
+function GridFloor() {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, -3]} receiveShadow>
+      <planeGeometry args={[20, 20]} />
+      <meshStandardMaterial color="#1a1a2e" transparent opacity={0.3} />
+    </mesh>
   );
 }
 
@@ -199,7 +217,6 @@ function QuestScene({
   selectedId: string | null;
   onSelect: (id: string) => void;
 }) {
-  // Arrange nodes in a winding S-path
   const positions = useMemo<[number, number, number][]>(() => {
     return nodes.map((_, i) => {
       const row = Math.floor(i / 3);
@@ -214,9 +231,12 @@ function QuestScene({
 
   return (
     <>
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[5, 8, 5]} intensity={0.8} castShadow />
-      <pointLight position={[-3, 4, -2]} intensity={0.4} color="#a855f7" />
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[5, 8, 5]} intensity={1} castShadow />
+      <pointLight position={[-3, 4, -2]} intensity={0.5} color="#a855f7" />
+      <pointLight position={[3, 3, 2]} intensity={0.3} color="#22c55e" />
+
+      <GridFloor />
 
       {/* Connectors */}
       {nodes.map((node, i) => {
@@ -244,7 +264,15 @@ function QuestScene({
         />
       ))}
 
-      <Environment preset="sunset" />
+      <OrbitControls
+        enablePan={false}
+        enableZoom={true}
+        minDistance={4}
+        maxDistance={14}
+        maxPolarAngle={Math.PI / 2.2}
+        minPolarAngle={Math.PI / 6}
+        target={[0, 0, -2]}
+      />
     </>
   );
 }
@@ -265,7 +293,6 @@ export function QuestPath3D({
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const nodes: QuestNode[] = useMemo(() => {
-    // Sort: completed first, then active, then locked
     const sorted = [...quests].sort((a, b) => {
       const order = { completed: 0, active: 1 };
       const aO = order[a.status as keyof typeof order] ?? 2;
@@ -284,35 +311,34 @@ export function QuestPath3D({
   const selectedNode = nodes.find((n) => n.id === selectedId);
 
   return (
-    <div className="relative w-full rounded-lg border-2 border-border bg-card overflow-hidden">
+    <div className="relative w-full rounded-lg border-2 border-border overflow-hidden" style={{ background: "linear-gradient(180deg, hsl(240 20% 12%) 0%, hsl(260 25% 18%) 100%)" }}>
       {/* Title bar */}
       <div className="flex items-center justify-between px-3 py-2 border-b-2 border-border bg-card">
         <span className="font-pixel text-[9px] text-foreground">🗺️ QUEST PATH</span>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1 text-[9px]">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1 text-[9px] text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" /> Done
           </span>
-          <span className="flex items-center gap-1 text-[9px]">
+          <span className="flex items-center gap-1 text-[9px] text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-[#a855f7] inline-block" /> Active
           </span>
-          <span className="flex items-center gap-1 text-[9px]">
+          <span className="flex items-center gap-1 text-[9px] text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-[#ef4444] inline-block" /> Recovery
           </span>
         </div>
       </div>
 
       {/* 3D Canvas */}
-      <div className="h-[320px] w-full">
+      <div style={{ height: "340px", width: "100%" }}>
         <Canvas
-          camera={{ position: [0, 5, 6], fov: 50 }}
+          camera={{ position: [0, 5, 7], fov: 50 }}
           shadows
           dpr={[1, 1.5]}
-          gl={{ antialias: true, alpha: true }}
-          onCreated={({ gl }) => {
-            gl.setClearColor(new THREE.Color("hsl(40, 30%, 96%)"), 0);
-          }}
+          gl={{ antialias: true }}
         >
           <Suspense fallback={null}>
+            <color attach="background" args={["#1a1a2e"]} />
+            <fog attach="fog" args={["#1a1a2e", 8, 18]} />
             <QuestScene nodes={nodes} selectedId={selectedId} onSelect={setSelectedId} />
           </Suspense>
         </Canvas>
@@ -321,12 +347,12 @@ export function QuestPath3D({
       {/* Selected quest detail overlay */}
       {selectedNode && (
         <div
-          className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t-2 border-border p-3 animate-fade-in"
+          className="absolute bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t-2 border-border p-3 cursor-pointer animate-fade-in"
           onClick={() => setSelectedId(null)}
         >
           <div className="flex items-center gap-2">
             <span
-              className={`w-3 h-3 rounded-full ${
+              className={`w-3 h-3 rounded-full shrink-0 ${
                 selectedNode.status === "completed"
                   ? "bg-[#22c55e]"
                   : selectedNode.type === "recovery"
@@ -335,10 +361,10 @@ export function QuestPath3D({
               }`}
             />
             <span className="font-pixel text-[10px] text-foreground truncate">{selectedNode.title}</span>
-            <span className="font-pixel text-[9px] text-warning ml-auto">+{selectedNode.xp} XP</span>
+            <span className="font-pixel text-[9px] text-warning ml-auto shrink-0">+{selectedNode.xp} XP</span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {selectedNode.status === "completed" ? "✅ Completed" : selectedNode.status === "active" ? "⚔️ In Progress — Click to view details" : "🔒 Locked"}
+            {selectedNode.status === "completed" ? "✅ Completed" : "⚔️ In Progress — click background to dismiss"}
           </p>
         </div>
       )}
