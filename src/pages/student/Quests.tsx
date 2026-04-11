@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, CheckCircle, Sparkles, Settings2, ExternalLink, AlertTriangle } from "lucide-react";
+import { QuestPath3D } from "@/components/QuestPath3D";
 import { toast } from "sonner";
 import { sfx } from "@/lib/retroSfx";
 
