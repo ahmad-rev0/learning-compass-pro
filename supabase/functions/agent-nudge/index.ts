@@ -42,6 +42,13 @@ async function searchExa(query: string, apiKey: string): Promise<{ title: string
   }
 }
 
+async function searchExaMultiple(queries: string[], apiKey: string): Promise<(null | { title: string; url: string })[]> {
+  return Promise.all(queries.map(async (q) => {
+    const r = await searchExa(q, apiKey);
+    return r ? { title: r.title, url: r.url } : null;
+  }));
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -125,7 +132,6 @@ serve(async (req) => {
     let interventionNeeded = false;
     let interventionType = "encouragement";
 
-    // Check sidequest first when student is doing well recently
     if (momentum >= 50 && recent3Avg >= 60 && lowScoreCount === 0) {
       interventionNeeded = true;
       interventionType = "side_quest";
@@ -194,8 +200,8 @@ serve(async (req) => {
           {
             role: "system",
             content: isSideQuest
-              ? "You are Atlas's learning agent. Generate an engaging SIDE QUEST for a student doing well. Side quests are bonus enrichment — fun deep-dives into related topics, advanced techniques, or interesting tangential subjects. Include 3-5 concrete steps."
-              : "You are Atlas's proactive learning agent. Generate a motivating, personalized quest for a student who needs intervention. Include 3-5 concrete action steps. Be specific and actionable.",
+              ? "You are Atlas's learning agent. Generate an engaging SIDE QUEST for a student doing well. Side quests are bonus enrichment — fun deep-dives into related topics. Each step MUST include a search query so we can find a resource link for it."
+              : "You are Atlas's proactive learning agent. Generate a motivating, personalized quest for a student who needs intervention. Each step MUST include a search query so we can find a resource link for it. Be specific and actionable.",
           },
           { role: "user", content: `Generate a quest:\n${context}` },
         ],
@@ -203,7 +209,7 @@ serve(async (req) => {
           type: "function",
           function: {
             name: "create_quest",
-            description: "Create a quest with steps",
+            description: "Create a quest with steps, each having a search query for resource discovery",
             parameters: {
               type: "object",
               properties: {
@@ -213,14 +219,20 @@ serve(async (req) => {
                 quest_description: { type: "string", description: "Quest details (1-2 sentences)" },
                 steps: {
                   type: "array",
-                  items: { type: "string" },
-                  description: "3-5 concrete steps to complete the quest",
+                  items: {
+                    type: "object",
+                    properties: {
+                      text: { type: "string", description: "The step instruction" },
+                      search_query: { type: "string", description: "Exa search query to find a learning resource for this step" },
+                    },
+                    required: ["text", "search_query"],
+                  },
+                  description: "3-5 concrete steps, each with a resource search query",
                 },
-                exa_search_query: { type: "string", description: "A search query to find a helpful learning resource for this quest" },
                 xp_bonus: { type: "number", description: "XP reward (10-50)" },
                 urgency: { type: "string", enum: ["low", "medium", "high"] },
               },
-              required: ["message", "action_suggestion", "quest_title", "quest_description", "steps", "exa_search_query", "xp_bonus", "urgency"],
+              required: ["message", "action_suggestion", "quest_title", "quest_description", "steps", "xp_bonus", "urgency"],
               additionalProperties: false,
             },
           },
@@ -235,15 +247,28 @@ serve(async (req) => {
     if (!tc) throw new Error("No quest from AI");
     const nudge = JSON.parse(tc.function.arguments);
 
-    // Search Exa for a relevant study resource
-    let resourceUrl: string | null = null;
-    if (nudge.exa_search_query && exaKey) {
-      const exaResult = await searchExa(nudge.exa_search_query, exaKey);
-      if (exaResult) {
-        resourceUrl = exaResult.url;
-        console.log("Exa resource found:", exaResult.title, exaResult.url);
-      }
+    // Search Exa for each step's resource in parallel
+    const rawSteps: { text: string; search_query: string }[] = Array.isArray(nudge.steps) ? nudge.steps : [];
+    let enrichedSteps: { text: string; resource_url: string | null; resource_title: string | null }[] = [];
+
+    if (exaKey && rawSteps.length > 0) {
+      const queries = rawSteps.map(s => s.search_query || s.text);
+      const results = await searchExaMultiple(queries, exaKey);
+      enrichedSteps = rawSteps.map((s, i) => ({
+        text: s.text,
+        resource_url: results[i]?.url || null,
+        resource_title: results[i]?.title || null,
+      }));
+    } else {
+      enrichedSteps = rawSteps.map(s => ({
+        text: typeof s === "string" ? s : s.text,
+        resource_url: null,
+        resource_title: null,
+      }));
     }
+
+    // Use the first step's resource as the main resource_url for backward compat
+    const mainResourceUrl = enrichedSteps.find(s => s.resource_url)?.resource_url || null;
 
     if (nudge.quest_title) {
       const questType = isSideQuest
@@ -259,8 +284,8 @@ serve(async (req) => {
         type: questType,
         xp_reward: nudge.xp_bonus,
         error_pattern: weaknesses[0] || null,
-        resource_url: resourceUrl,
-        steps: nudge.steps || [],
+        resource_url: mainResourceUrl,
+        steps: enrichedSteps,
       });
     }
 
@@ -279,12 +304,12 @@ serve(async (req) => {
       metrics_snapshot: {
         momentum, recentAvg, lowScoreCount, hoursSinceActivity, staleQuests,
         streak: progress.streak_days, signalCount: signals.length,
-        resourceUrl,
+        mainResourceUrl,
       },
       trigger_source: "proactive_check",
     });
 
-    return new Response(JSON.stringify({ success: true, nudge, intervention_type: interventionType, resource_url: resourceUrl }), {
+    return new Response(JSON.stringify({ success: true, nudge, intervention_type: interventionType, resource_url: mainResourceUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

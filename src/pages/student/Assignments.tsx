@@ -163,6 +163,7 @@ export default function StudentAssignments() {
                 return (
                   <motion.div
                     key={a.id}
+                    data-wizard-assignment={i === 0 ? "first" : undefined}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.03 }}

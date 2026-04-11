@@ -21,6 +21,24 @@ const TYPE_STYLES: Record<string, string> = {
   sidequest: "bg-warning/10 text-warning border-warning/30",
 };
 
+interface QuestStep {
+  text: string;
+  resource_url?: string | null;
+  resource_title?: string | null;
+}
+
+function parseSteps(raw: unknown): QuestStep[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((s) => {
+    if (typeof s === "string") return { text: s, resource_url: null, resource_title: null };
+    return {
+      text: s?.text || String(s),
+      resource_url: s?.resource_url || null,
+      resource_title: s?.resource_title || null,
+    };
+  });
+}
+
 export default function StudentQuests() {
   const { user } = useAuth();
   const { isDemoMode } = useDemo();
@@ -124,7 +142,7 @@ export default function StudentQuests() {
 
   const handleStartQuest = (questId: string) => {
     const quest = quests.find((q) => q.id === questId);
-    const steps: string[] = Array.isArray((quest as any)?.steps) ? (quest as any).steps : [];
+    const steps = parseSteps((quest as any)?.steps);
     setWorkingQuestId(questId);
     setCheckedSteps((prev) => ({ ...prev, [questId]: new Array(steps.length).fill(false) }));
     sfx.click();
@@ -206,7 +224,7 @@ export default function StudentQuests() {
               <p className="font-pixel text-[9px] text-accent">⚔️ ACTIVE QUESTS</p>
               {activeQuests.map((quest, i) => {
                 const isWorking = workingQuestId === quest.id;
-                const steps: string[] = Array.isArray((quest as any).steps) ? (quest as any).steps : [];
+                const steps = parseSteps((quest as any).steps);
                 const isSideQuest = quest.type === "sidequest";
 
                 return (
@@ -306,16 +324,29 @@ export default function StudentQuests() {
                               className="mt-3 space-y-1.5 border-t border-border pt-3"
                             >
                               <p className="font-pixel text-[8px] text-accent mb-1">📋 QUEST STEPS — check each off when done</p>
-                              {steps.map((step: string, si: number) => {
+                              {steps.map((step, si) => {
                                 const isChecked = checkedSteps[quest.id]?.[si] || false;
                                 return (
-                                  <div
-                                    key={si}
-                                    className={`flex items-start gap-2 text-sm cursor-pointer p-1.5 rounded transition-colors ${isChecked ? "bg-primary/10" : "hover:bg-muted/50"}`}
-                                    onClick={() => toggleStep(quest.id, si)}
-                                  >
-                                    <Checkbox checked={isChecked} className="mt-0.5 shrink-0" />
-                                    <span className={isChecked ? "text-foreground line-through opacity-60" : "text-muted-foreground"}>{step}</span>
+                                  <div key={si} className="space-y-0.5">
+                                    <div
+                                      className={`flex items-start gap-2 text-sm cursor-pointer p-1.5 rounded transition-colors ${isChecked ? "bg-primary/10" : "hover:bg-muted/50"}`}
+                                      onClick={() => toggleStep(quest.id, si)}
+                                    >
+                                      <Checkbox checked={isChecked} className="mt-0.5 shrink-0" />
+                                      <span className={isChecked ? "text-foreground line-through opacity-60" : "text-muted-foreground"}>{step.text}</span>
+                                    </div>
+                                    {step.resource_url && (
+                                      <a
+                                        href={step.resource_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-7 inline-flex items-center gap-1 text-[9px] text-primary hover:underline font-pixel bg-primary/5 px-1.5 py-0.5 rounded border border-primary/15"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <ExternalLink className="h-2.5 w-2.5" />
+                                        {step.resource_title ? `📚 ${step.resource_title.slice(0, 40)}` : "📚 Study Resource"} ↗
+                                      </a>
+                                    )}
                                   </div>
                                 );
                               })}
