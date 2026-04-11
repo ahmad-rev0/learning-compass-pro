@@ -179,29 +179,44 @@ function Platform({
 function MasteryOrb({ position, color, mastery }: { position: [number, number, number]; color: string; mastery: number }) {
   const ref = useRef<THREE.Mesh>(null);
   const innerRef = useRef<THREE.Mesh>(null);
+  const aggressive = mastery > 0.8;
   useFrame((state) => {
     if (!ref.current) return;
     const t = state.clock.elapsedTime;
-    const baseScale = 0.08 + mastery * 0.14;
-    const pulse = baseScale + Math.sin(t * (2 + mastery * 3)) * 0.03 * mastery;
-    ref.current.scale.setScalar(pulse * 10);
-    ref.current.rotation.y = t * (0.5 + mastery);
-    if (innerRef.current) {
-      innerRef.current.scale.setScalar(pulse * 6);
+    if (aggressive) {
+      // Rapid pulsing, wild rotation
+      const pulse = 0.25 + Math.sin(t * 6) * 0.1 + Math.sin(t * 9) * 0.05;
+      ref.current.scale.setScalar(pulse * 10);
+      ref.current.rotation.y = t * 2.5;
+      ref.current.rotation.x = Math.sin(t * 3) * 0.5;
+      if (innerRef.current) {
+        innerRef.current.scale.setScalar(pulse * 7);
+        innerRef.current.rotation.z = t * 3;
+      }
+    } else {
+      const baseScale = 0.08 + mastery * 0.14;
+      const pulse = baseScale + Math.sin(t * (2 + mastery * 3)) * 0.03 * mastery;
+      ref.current.scale.setScalar(pulse * 10);
+      ref.current.rotation.y = t * (0.5 + mastery);
+      if (innerRef.current) {
+        innerRef.current.scale.setScalar(pulse * 6);
+      }
     }
   });
   return (
     <group position={position}>
       {/* Outer glow */}
       <mesh ref={ref}>
-        <icosahedronGeometry args={[0.01, 1]} />
-        <meshBasicMaterial color={color} transparent opacity={0.25 + mastery * 0.3} />
+        <icosahedronGeometry args={[0.01, aggressive ? 2 : 1]} />
+        <meshBasicMaterial color={color} transparent opacity={aggressive ? 0.6 : 0.25 + mastery * 0.3} />
       </mesh>
       {/* Inner bright core */}
       <mesh ref={innerRef}>
-        <icosahedronGeometry args={[0.01, 1]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.4 + mastery * 0.4} />
+        <icosahedronGeometry args={[0.01, aggressive ? 2 : 1]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={aggressive ? 0.9 : 0.4 + mastery * 0.4} />
       </mesh>
+      {/* Extra energy ring for aggressive */}
+      {aggressive && <AggressiveEnergyRing color={color} />}
     </group>
   );
 }
