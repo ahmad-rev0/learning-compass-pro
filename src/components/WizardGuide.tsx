@@ -20,6 +20,7 @@ export function WizardGuide() {
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
   const [ready, setReady] = useState(false);
   const hasNavigatedRef = useRef(false);
+  const firstLoadRef = useRef(true);
   const wizardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,8 +77,13 @@ export function WizardGuide() {
   }, [placeAtNav]);
 
   const positionInsideCard = (card: HTMLElement) => {
-    // Scroll card into view first
-    card.scrollIntoView({ behavior: "smooth", block: "center" });
+    // On first load of the tab, don't auto-scroll — let user see the quest trail
+    const shouldScroll = !firstLoadRef.current;
+    firstLoadRef.current = false;
+
+    if (shouldScroll) {
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 
     // Wait for scroll to settle, then compute page-absolute position
     setTimeout(() => {
