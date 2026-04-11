@@ -98,9 +98,11 @@ export default function StudentUpload() {
         if (file && !content) {
           // Read text from file if no content typed
           try {
-            fileContent = await file.text();
+            const rawText = await file.text();
+            // Sanitize: remove null bytes and invalid unicode surrogates
+            fileContent = rawText.replace(/\0/g, "").replace(/[\uD800-\uDFFF]/g, "").slice(0, 50000);
           } catch {
-            fileContent = `(File uploaded: ${file.name}, ${(file.size / 1024).toFixed(1)} KB)`;
+            fileContent = `(File uploaded: ${file.name}, ${(file.size / 1024).toFixed(1)} KB — binary file, text extraction not available)`;
           }
         }
 
