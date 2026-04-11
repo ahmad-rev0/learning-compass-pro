@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import DemoTour from "@/components/DemoTour";
@@ -11,6 +11,7 @@ import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload
 import { cn } from "@/lib/utils";
 import { sfx } from "@/lib/retroSfx";
 import atlasLogo from "@/assets/atlas-logo.png";
+import { SplashScreen } from "@/components/SplashScreen";
 
 const TEACHER_NAV = [
   { to: "/teacher/courses", icon: BookOpen, label: "COURSES" },
@@ -32,10 +33,20 @@ const STUDENT_NAV = [
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [soundOn, setSoundOn] = useState(!sfx.muted);
+  const [showSplash, setShowSplash] = useState(false);
   const { user, role, loading, signOut } = useAuth();
   const { isDemoMode, exitDemo } = useDemo();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Show splash once per session on first dashboard load
+  useEffect(() => {
+    const splashKey = "atlas_splash_shown";
+    if (!sessionStorage.getItem(splashKey)) {
+      setShowSplash(true);
+      sessionStorage.setItem(splashKey, "1");
+    }
+  }, []);
 
   if (loading && !isDemoMode) return null;
   if (!user && !isDemoMode) return <Navigate to="/login" replace />;
