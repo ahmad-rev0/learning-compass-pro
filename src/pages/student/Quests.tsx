@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { motion, AnimatePresence } from "framer-motion";
 import { Swords, CheckCircle, Sparkles, Settings2, ExternalLink, AlertTriangle, Play, Loader2 } from "lucide-react";
 import { QuestPath3D } from "@/components/QuestPath3D";
@@ -28,6 +29,7 @@ export default function StudentQuests() {
   const [inactivityMin, setInactivityMin] = useState(2);
   const [showSettings, setShowSettings] = useState(false);
   const [workingQuestId, setWorkingQuestId] = useState<string | null>(null);
+  const [checkedSteps, setCheckedSteps] = useState<Record<string, boolean[]>>({});
   const lastActivityRef = useRef(Date.now());
   const timerRef = useRef<ReturnType<typeof setInterval>>();
 
