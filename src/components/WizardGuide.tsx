@@ -20,6 +20,7 @@ export function WizardGuide() {
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
   const [ready, setReady] = useState(false);
   const hasNavigatedRef = useRef(false);
+  const firstLoadRef = useRef(true);
   const wizardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
