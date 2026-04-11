@@ -1,208 +1,214 @@
-import { useState, Suspense } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { WizardAvatar3DCanvas } from "@/components/WizardAvatar3D";
-import { useWizardGuidance, GuidanceStep } from "@/hooks/useWizardGuidance";
+import { useWizardGuidance } from "@/hooks/useWizardGuidance";
 import { sfx } from "@/lib/retroSfx";
-import { ChevronRight, ChevronLeft, X, Compass } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
+
+/**
+ * Maps guidance routes to CSS selectors for elements on the current page
+ * the wizard should point toward.
+ */
+const ROUTE_TARGET_SELECTORS: Record<string, string> = {
+  "/student/quests": "[data-wizard-target='quests']",
+  "/student/assignments": "[data-wizard-target='assignments']",
+  "/student/upload": "[data-wizard-target='upload']",
+  "/student/progress": "[data-wizard-target='progress']",
+  "/student/achievements": "[data-wizard-target='achievements']",
+  "/student/study-plan": "[data-wizard-target='study-plan']",
+  "/student/agent": "[data-wizard-target='agent']",
+};
+
+/** Find the nav tab for a route as a fallback target */
+function findNavTarget(route: string): HTMLElement | null {
+  return document.querySelector(`a[href="${route}"]`);
+}
 
 export function WizardGuide() {
-  const [isOpen, setIsOpen] = useState(true);
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [wizardPos, setWizardPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const wizardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { steps, mood } = useWizardGuidance();
+  const currentStep = steps[0];
 
-  const currentStep = steps[stepIndex] ?? steps[0];
-  if (!currentStep) return null;
+  // Find and track the target element position
+  useEffect(() => {
+    if (!currentStep || dismissed) return;
+
+    const findTarget = () => {
+      // First try page-level target
+      const selector = ROUTE_TARGET_SELECTORS[currentStep.route];
+      let el = selector ? document.querySelector<HTMLElement>(selector) : null;
+
+      // If we're on a different page, point to the nav tab
+      if (!el && location.pathname !== currentStep.route) {
+        el = findNavTarget(currentStep.route);
+      }
+
+      // Fallback: first active quest card or first content card
+      if (!el) {
+        el = document.querySelector<HTMLElement>("[data-wizard-target]") ||
+             document.querySelector<HTMLElement>(".space-y-2 > div:first-child");
+      }
+
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setTargetRect(rect);
+
+        // Position wizard to the left of the target, vertically centered
+        const wizW = 100;
+        const wizH = 150;
+        let wx = rect.left - wizW - 20;
+        let wy = rect.top + rect.height / 2 - wizH / 2;
+
+        // If no room on left, go above
+        if (wx < 10) {
+          wx = rect.left + rect.width / 2 - wizW / 2;
+          wy = rect.top - wizH - 20;
+        }
+
+        // Clamp to viewport
+        wx = Math.max(10, Math.min(window.innerWidth - wizW - 10, wx));
+        wy = Math.max(10, Math.min(window.innerHeight - wizH - 60, wy));
+
+        setWizardPos({ x: wx, y: wy });
+      } else {
+        setTargetRect(null);
+        // Default: center bottom
+        setWizardPos({
+          x: window.innerWidth / 2 - 50,
+          y: window.innerHeight - 200,
+        });
+      }
+    };
+
+    findTarget();
+    const interval = setInterval(findTarget, 1500);
+    window.addEventListener("resize", findTarget);
+    window.addEventListener("scroll", findTarget, true);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("resize", findTarget);
+      window.removeEventListener("scroll", findTarget, true);
+    };
+  }, [currentStep, dismissed, location.pathname]);
+
+  if (!currentStep || dismissed) return null;
 
   const handleAction = () => {
     sfx.click();
     navigate(currentStep.route);
-    setIsMinimized(true);
   };
 
-  const nextStep = () => {
-    sfx.navigate();
-    setStepIndex((i) => (i + 1) % steps.length);
-  };
-
-  const prevStep = () => {
-    sfx.navigate();
-    setStepIndex((i) => (i - 1 + steps.length) % steps.length);
-  };
-
-  const toggleMinimize = () => {
-    sfx.click();
-    setIsMinimized(!isMinimized);
-  };
-
-  if (!isOpen) {
-    return (
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        onClick={() => { setIsOpen(true); setIsMinimized(false); sfx.click(); }}
-        className="fixed bottom-4 right-4 z-50 w-14 h-14 rounded-full bg-card border-2 border-primary/40 shadow-lg shadow-primary/20 flex items-center justify-center hover:scale-110 transition-transform cursor-pointer"
-        title="Open Wizard Guide"
-      >
-        <Compass className="h-6 w-6 text-primary" />
-      </motion.button>
-    );
+  // Calculate arrow angle from wizard center to target center
+  let arrowAngle = 0;
+  if (targetRect && wizardRef.current) {
+    const wizCx = wizardPos.x + 50;
+    const wizCy = wizardPos.y + 75;
+    const targetCx = targetRect.left + targetRect.width / 2;
+    const targetCy = targetRect.top + targetRect.height / 2;
+    arrowAngle = Math.atan2(targetCy - wizCy, targetCx - wizCx) * (180 / Math.PI);
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.8 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 50, scale: 0.8 }}
-      className="fixed bottom-4 right-4 z-50"
-      style={{ width: isMinimized ? "auto" : "340px" }}
-    >
-      <AnimatePresence mode="wait">
-        {isMinimized ? (
-          <motion.button
-            key="minimized"
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.5, opacity: 0 }}
-            onClick={toggleMinimize}
-            className="relative w-20 h-20 rounded-full bg-card border-2 border-primary/40 shadow-lg shadow-primary/20 cursor-pointer hover:border-primary/60 transition-colors overflow-hidden"
-            title="Expand wizard guide"
-          >
-            <Suspense fallback={null}>
-              <WizardAvatar3DCanvas mood={mood} />
-            </Suspense>
-            {/* Notification dot */}
-            <span className="absolute top-0 right-0 w-4 h-4 rounded-full bg-primary border-2 border-card animate-pulse" />
-          </motion.button>
-        ) : (
+    <>
+      {/* Highlight ring around the target element */}
+      {targetRect && (
+        <motion.div
+          className="fixed z-40 pointer-events-none rounded-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{
+            left: targetRect.left - 4,
+            top: targetRect.top - 4,
+            width: targetRect.width + 8,
+            height: targetRect.height + 8,
+            boxShadow: "0 0 0 3px hsl(var(--primary) / 0.5), 0 0 20px 4px hsl(var(--primary) / 0.2)",
+          }}
+        />
+      )}
+
+      {/* The wizard — no container, just floating */}
+      <motion.div
+        ref={wizardRef}
+        className="fixed z-50"
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{
+          opacity: 1,
+          scale: 1,
+          x: wizardPos.x,
+          y: wizardPos.y,
+        }}
+        transition={{ type: "spring", stiffness: 120, damping: 20 }}
+        style={{ width: 100, height: 150 }}
+      >
+        {/* Dismiss button */}
+        <button
+          onClick={() => { setDismissed(true); sfx.click(); }}
+          className="absolute -top-2 -right-2 z-10 w-5 h-5 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+        >
+          <X className="h-3 w-3" />
+        </button>
+
+        {/* Pixel wizard character */}
+        <div className="w-full h-full" style={{ imageRendering: "pixelated" }}>
+          <WizardAvatar3DCanvas mood={mood} />
+        </div>
+
+        {/* Pointing arrow from wizard toward target */}
+        {targetRect && (
           <motion.div
-            key="expanded"
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-card border-2 border-border rounded-lg shadow-2xl overflow-hidden"
+            className="absolute pointer-events-none"
+            style={{
+              left: "50%",
+              top: "50%",
+              transformOrigin: "0 50%",
+              transform: `rotate(${arrowAngle}deg)`,
+            }}
+            animate={{ scaleX: [1, 1.15, 1] }}
+            transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b-2 border-border bg-card/95">
-              <div className="flex items-center gap-2">
-                <Compass className="h-4 w-4 text-primary" />
-                <span className="font-pixel text-[9px] text-foreground">ATLAS GUIDE</span>
-                <span className="font-pixel text-[7px] text-muted-foreground">
-                  {stepIndex + 1}/{steps.length}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={toggleMinimize}
-                  className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors text-xs"
-                  title="Minimize"
-                >
-                  —
-                </button>
-                <button
-                  onClick={() => { setIsOpen(false); sfx.click(); }}
-                  className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                  title="Close"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-
-            {/* Wizard 3D Avatar */}
-            <div className="relative h-36 bg-gradient-to-b from-[#0a1628] to-[#1a2a4a]">
-              <Suspense fallback={
-                <div className="h-full flex items-center justify-center">
-                  <span className="font-pixel text-[8px] text-muted-foreground animate-pulse">Loading wizard...</span>
-                </div>
-              }>
-                <WizardAvatar3DCanvas mood={mood} />
-              </Suspense>
-
-              {/* Mood indicator */}
-              <div className="absolute bottom-2 left-2">
-                <span className={`inline-block font-pixel text-[7px] px-2 py-0.5 rounded-full border ${
-                  mood === "celebrating" ? "bg-[#44ff88]/15 text-[#44ff88] border-[#44ff88]/30"
-                  : mood === "concerned" ? "bg-[#ff6644]/15 text-[#ff6644] border-[#ff6644]/30"
-                  : mood === "pointing" ? "bg-[#bb88ff]/15 text-[#bb88ff] border-[#bb88ff]/30"
-                  : mood === "thinking" ? "bg-[#f39c12]/15 text-[#f39c12] border-[#f39c12]/30"
-                  : "bg-primary/15 text-primary border-primary/30"
-                }`}>
-                  {mood === "celebrating" ? "✨ Great job!"
-                    : mood === "concerned" ? "⚠ Needs attention"
-                    : mood === "pointing" ? "👉 Next step"
-                    : mood === "thinking" ? "🤔 Thinking..."
-                    : "🧭 Exploring"}
-                </span>
-              </div>
-            </div>
-
-            {/* Speech bubble */}
-            <div className="px-3 py-3">
-              {/* Category badge */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`font-pixel text-[7px] px-2 py-0.5 rounded border ${
-                  currentStep.category === "quest" ? "bg-[#bb88ff]/10 text-[#bb88ff] border-[#bb88ff]/20"
-                  : currentStep.category === "assignment" ? "bg-[#ff6644]/10 text-[#ff6644] border-[#ff6644]/20"
-                  : currentStep.category === "momentum" ? "bg-[#f39c12]/10 text-[#f39c12] border-[#f39c12]/20"
-                  : currentStep.category === "achievement" ? "bg-[#44ff88]/10 text-[#44ff88] border-[#44ff88]/20"
-                  : "bg-primary/10 text-primary border-primary/20"
-                }`}>
-                  {currentStep.category}
-                </span>
-                <span className="font-pixel text-[7px] text-muted-foreground">
-                  Priority: {"●".repeat(Math.min(3, Math.ceil(4 - currentStep.priority / 3)))}{"○".repeat(3 - Math.min(3, Math.ceil(4 - currentStep.priority / 3)))}
-                </span>
-              </div>
-
-              {/* Message */}
-              <p className="text-xs text-foreground leading-relaxed mb-3">
-                {currentStep.message}
-              </p>
-
-              {/* Action button */}
-              <button
-                onClick={handleAction}
-                className="w-full font-pixel text-[9px] py-2 rounded bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Compass className="h-3 w-3" />
-                {currentStep.action}
-                <ChevronRight className="h-3 w-3" />
-              </button>
-
-              {/* Step navigation */}
-              {steps.length > 1 && (
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/50">
-                  <button
-                    onClick={prevStep}
-                    className="font-pixel text-[7px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <ChevronLeft className="h-3 w-3" /> Prev
-                  </button>
-                  <div className="flex gap-1">
-                    {steps.map((_, i) => (
-                      <span
-                        key={i}
-                        className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                          i === stepIndex ? "bg-primary" : "bg-muted-foreground/30"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <button
-                    onClick={nextStep}
-                    className="font-pixel text-[7px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    Next <ChevronRight className="h-3 w-3" />
-                  </button>
-                </div>
-              )}
+            <div className="flex items-center">
+              <div className="w-10 h-0.5 bg-primary/60" />
+              <div className="w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-l-[8px] border-l-primary/80" />
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
-    </motion.div>
+
+        {/* Speech bubble — floating near wizard, no container background */}
+        <motion.div
+          className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
+          style={{ bottom: -36 }}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <button
+            onClick={handleAction}
+            className="font-pixel text-[8px] text-primary hover:text-primary/80 transition-colors cursor-pointer flex items-center gap-1 bg-card/90 backdrop-blur-sm border border-primary/30 rounded px-2 py-1 shadow-lg"
+          >
+            {currentStep.action}
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        </motion.div>
+
+        {/* Mood speech text — small floating text */}
+        <motion.div
+          className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap"
+          animate={{ y: [0, -3, 0] }}
+          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+        >
+          <span className="font-pixel text-[7px] text-foreground/80 bg-card/80 rounded px-1.5 py-0.5 border border-border/50">
+            {currentStep.message.length > 50
+              ? currentStep.message.slice(0, 50) + "…"
+              : currentStep.message}
+          </span>
+        </motion.div>
+      </motion.div>
+    </>
   );
 }
