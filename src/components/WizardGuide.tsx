@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { WizardAvatar3DCanvas } from "@/components/WizardAvatar3D";
@@ -7,21 +7,14 @@ import { sfx } from "@/lib/retroSfx";
 import { ChevronRight, X } from "lucide-react";
 
 /**
- * Two-phase wizard:
- * Phase 1 ("nav"): Point at the nav tab for the priority route
- * Phase 2 ("task"): User navigated there → wizard moves inside the first quest card
+ * Wizard always hovers above/below the nav tab for the highest-priority route.
+ * It dynamically re-targets when the priority changes (e.g., assignment due soon).
  */
-type WizardPhase = "nav" | "task";
-
 export function WizardGuide() {
   const [dismissed, setDismissed] = useState(false);
-  const [phase, setPhase] = useState<WizardPhase>("nav");
   const [wizardPos, setWizardPos] = useState<{ x: number; y: number } | null>(null);
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
   const [ready, setReady] = useState(false);
-  const hasNavigatedRef = useRef(false);
-  const firstLoadRef = useRef(true);
-  const wizardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { steps, mood } = useWizardGuidance();
@@ -30,19 +23,9 @@ export function WizardGuide() {
   const WIZARD_W = 80;
   const WIZARD_H = 120;
 
-  // Detect if user is already on the target route → go straight to phase 2
-  useEffect(() => {
-    if (!currentStep || dismissed) return;
-    if (location.pathname === currentStep.route) {
-      setPhase("task");
-      hasNavigatedRef.current = true;
-    } else {
-      setPhase("nav");
-      hasNavigatedRef.current = false;
-    }
-  }, [currentStep?.id, location.pathname, dismissed]);
+  const isOnTargetRoute = currentStep && location.pathname === currentStep.route;
 
-  // Phase 1: position wizard next to the nav tab
+  // Position wizard next to the target nav tab
   const placeAtNav = useCallback(() => {
     if (!currentStep) return;
     const navTab = document.querySelector<HTMLElement>(`a[href="${currentStep.route}"]`);
@@ -62,91 +45,46 @@ export function WizardGuide() {
     setReady(true);
   }, [currentStep]);
 
-  // Phase 2: position wizard INSIDE the first quest card (right side)
-  const placeAtTask = useCallback(() => {
-    // Find first quest card
-    const card = document.querySelector<HTMLElement>("[data-wizard-quest='first']");
-    if (!card) {
-      // Fallback: first card on the page
-      const fallback = document.querySelector<HTMLElement>("[data-wizard-target] .border-2");
-      if (!fallback) { placeAtNav(); return; }
-      positionInsideCard(fallback);
-      return;
-    }
-    positionInsideCard(card);
-  }, [placeAtNav]);
-
-  const positionInsideCard = (card: HTMLElement) => {
-    // On first load of the tab, don't auto-scroll — let user see the quest trail
-    const shouldScroll = !firstLoadRef.current;
-    firstLoadRef.current = false;
-
-    if (shouldScroll) {
-      card.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-
-    // Wait for scroll to settle, then compute page-absolute position
-    setTimeout(() => {
-      const freshRect = card.getBoundingClientRect();
-      setHighlightRect(freshRect);
-
-      // Convert viewport coords to page-absolute coords
-      const pageX = freshRect.right - WIZARD_W - 8 + window.scrollX;
-      const pageY = freshRect.top + freshRect.height / 2 - WIZARD_H / 2 + window.scrollY;
-
-      setWizardPos({
-        x: Math.max(10, pageX),
-        y: Math.max(100, pageY),
-      });
-      setReady(true);
-    }, 500);
-  };
-
-  // Run placement based on phase
+  // Re-place on step change or route change
   useEffect(() => {
     if (!currentStep || dismissed) { setReady(false); return; }
 
-    const timeout = setTimeout(() => {
-      if (phase === "nav") {
-        placeAtNav();
-      } else {
-        placeAtTask();
-      }
-    }, 300);
-
+    const timeout = setTimeout(placeAtNav, 300);
     return () => clearTimeout(timeout);
-  }, [phase, currentStep?.id, dismissed]);
+  }, [currentStep?.id, location.pathname, dismissed, placeAtNav]);
 
-  // Update highlight rect on scroll (wizard stays put)
+  // Update highlight on scroll/resize
   useEffect(() => {
-    if (!ready || dismissed || phase !== "task") return;
+    if (!ready || dismissed || !currentStep) return;
 
-    // For task phase, keep highlight tracking the card but DON'T move wizard
-    const updateHighlight = () => {
-      const card = document.querySelector<HTMLElement>("[data-wizard-quest='first']") ||
-                   document.querySelector<HTMLElement>("[data-wizard-target] .border-2");
-      if (card && document.contains(card)) {
-        setHighlightRect(card.getBoundingClientRect());
-      }
+    const update = () => {
+      const navTab = document.querySelector<HTMLElement>(`a[href="${currentStep.route}"]`);
+      if (navTab) setHighlightRect(navTab.getBoundingClientRect());
     };
 
-    window.addEventListener("scroll", updateHighlight, true);
-    return () => window.removeEventListener("scroll", updateHighlight, true);
-  }, [ready, dismissed, phase]);
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [ready, dismissed, currentStep]);
 
   if (!currentStep || dismissed || !ready || !wizardPos) return null;
 
   const handleAction = () => {
     sfx.click();
-    if (phase === "nav") {
-      navigate(currentStep.route);
-      // Phase will switch to "task" via the location effect
-    }
+    navigate(currentStep.route);
   };
+
+  // Pick speech text
+  const bubbleText = isOnTargetRoute
+    ? (mood === "concerned" ? "Do this first!" : "Complete this quest!")
+    : (mood === "concerned" ? "This needs attention!" : "Go here next!");
 
   return (
     <>
-      {/* Highlight glow on target */}
+      {/* Highlight glow on target nav tab */}
       {highlightRect && (
         <div
           className="fixed z-40 pointer-events-none rounded-md"
@@ -161,10 +99,9 @@ export function WizardGuide() {
         />
       )}
 
-      {/* Wizard — fixed in nav phase, absolute (scrolls with page) in task phase */}
+      {/* Wizard — always fixed at nav level */}
       <motion.div
-        ref={wizardRef}
-        className={`${phase === "task" ? "absolute" : "fixed"} z-50 pointer-events-auto`}
+        className="fixed z-50 pointer-events-auto"
         initial={{ opacity: 0, scale: 0.3 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 100, damping: 18 }}
@@ -183,7 +120,7 @@ export function WizardGuide() {
         </button>
 
         <div className="w-full h-full" style={{ imageRendering: "pixelated" }}>
-          <WizardAvatar3DCanvas mood={phase === "task" ? "pointing" : mood} />
+          <WizardAvatar3DCanvas mood={mood} />
         </div>
 
         {/* Speech bubble */}
@@ -201,11 +138,9 @@ export function WizardGuide() {
           {/* Bubble body */}
           <div className="bg-card border border-border rounded px-2 py-1.5 shadow-lg">
             <p className="font-pixel text-[7px] text-foreground whitespace-nowrap leading-relaxed">
-              {phase === "nav"
-                ? (mood === "concerned" ? "This needs attention!" : "Go here next!")
-                : (mood === "concerned" ? "Do this first!" : "Complete this quest!")}
+              {bubbleText}
             </p>
-            {phase === "nav" && (
+            {!isOnTargetRoute && (
               <button
                 onClick={handleAction}
                 className="font-pixel text-[7px] text-primary hover:text-primary/80 transition-colors cursor-pointer flex items-center gap-0.5 mt-1"
