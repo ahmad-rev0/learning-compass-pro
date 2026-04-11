@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { WizardAvatar3DCanvas } from "@/components/WizardAvatar3D";
@@ -6,15 +6,10 @@ import { useWizardGuidance } from "@/hooks/useWizardGuidance";
 import { sfx } from "@/lib/retroSfx";
 import { ChevronRight, X } from "lucide-react";
 
-/**
- * Wizard always hovers above/below the nav tab for the highest-priority route.
- * It dynamically re-targets when the priority changes (e.g., assignment due soon).
- */
 export function WizardGuide() {
   const [dismissed, setDismissed] = useState(false);
   const [wizardPos, setWizardPos] = useState<{ x: number; y: number } | null>(null);
   const [highlightRect, setHighlightRect] = useState<DOMRect | null>(null);
-  const [ready, setReady] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { steps, mood } = useWizardGuidance();
@@ -22,89 +17,85 @@ export function WizardGuide() {
 
   const WIZARD_W = 80;
   const WIZARD_H = 120;
+  const isOnTargetRoute = currentStep?.route === location.pathname;
 
-  const isOnTargetRoute = currentStep && location.pathname === currentStep.route;
-
-  // Position wizard next to the target nav tab
-  const placeAtNav = useCallback(() => {
-    if (!currentStep) return;
-    const navTab = document.querySelector<HTMLElement>(`a[href="${currentStep.route}"]`);
-    if (!navTab) return;
-
-    const rect = navTab.getBoundingClientRect();
-    setHighlightRect(rect);
-
-    // Place wizard below the nav tab
-    const wx = rect.left + rect.width / 2 - WIZARD_W / 2;
-    const wy = rect.bottom + 8;
-
-    setWizardPos({
-      x: Math.max(10, Math.min(window.innerWidth - WIZARD_W - 10, wx)),
-      y: Math.max(100, Math.min(window.innerHeight - WIZARD_H - 40, wy)),
-    });
-    setReady(true);
-  }, [currentStep]);
-
-  // Re-place on step change or route change
   useEffect(() => {
-    if (!currentStep || dismissed) { setReady(false); return; }
+    if (!currentStep || dismissed) {
+      setWizardPos(null);
+      setHighlightRect(null);
+      return;
+    }
 
-    const timeout = setTimeout(placeAtNav, 300);
-    return () => clearTimeout(timeout);
-  }, [currentStep?.id, location.pathname, dismissed, placeAtNav]);
+    let frame = 0;
 
-  // Update highlight on scroll/resize
-  useEffect(() => {
-    if (!ready || dismissed || !currentStep) return;
+    const syncToNav = () => {
+      const navTab = document.querySelector<HTMLElement>(`[data-nav-route="${currentStep.route}"]`);
+      if (!navTab) {
+        frame = window.requestAnimationFrame(syncToNav);
+        return;
+      }
 
-    const update = () => {
-      const navTab = document.querySelector<HTMLElement>(`a[href="${currentStep.route}"]`);
-      if (navTab) setHighlightRect(navTab.getBoundingClientRect());
+      const rect = navTab.getBoundingClientRect();
+      const headerVisible = rect.bottom > 0 && rect.top < window.innerHeight && rect.width > 0 && rect.height > 0;
+
+      if (!headerVisible) {
+        setHighlightRect(null);
+        setWizardPos(null);
+        frame = window.requestAnimationFrame(syncToNav);
+        return;
+      }
+
+      setHighlightRect(rect);
+
+      const desiredX = rect.left + rect.width / 2 - WIZARD_W / 2;
+      const desiredY = Math.max(8, rect.top - WIZARD_H - 10);
+
+      setWizardPos({
+        x: Math.max(8, Math.min(window.innerWidth - WIZARD_W - 8, desiredX)),
+        y: desiredY,
+      });
+
+      frame = window.requestAnimationFrame(syncToNav);
     };
 
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [ready, dismissed, currentStep]);
+    frame = window.requestAnimationFrame(syncToNav);
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentStep?.id, currentStep?.route, dismissed]);
 
-  if (!currentStep || dismissed || !ready || !wizardPos) return null;
+  if (!currentStep || dismissed || !wizardPos || !highlightRect) return null;
 
   const handleAction = () => {
     sfx.click();
     navigate(currentStep.route);
   };
 
-  // Pick speech text
   const bubbleText = isOnTargetRoute
-    ? (mood === "concerned" ? "Do this first!" : "Complete this quest!")
-    : (mood === "concerned" ? "This needs attention!" : "Go here next!");
+    ? mood === "concerned"
+      ? "Do this first!"
+      : "You’re in the right place!"
+    : mood === "concerned"
+      ? "This needs attention!"
+      : "Go here next!";
 
   return (
     <>
-      {/* Highlight glow on target nav tab */}
-      {highlightRect && (
-        <div
-          className="fixed z-40 pointer-events-none rounded-md"
-          style={{
-            left: highlightRect.left - 3,
-            top: highlightRect.top - 3,
-            width: highlightRect.width + 6,
-            height: highlightRect.height + 6,
-            boxShadow: "0 0 0 2px hsl(var(--primary) / 0.5), 0 0 14px 2px hsl(var(--primary) / 0.2)",
-            animation: "pulse 2s ease-in-out infinite",
-          }}
-        />
-      )}
+      <div
+        className="fixed z-40 pointer-events-none rounded-md"
+        style={{
+          left: highlightRect.left - 2,
+          top: highlightRect.top - 2,
+          width: highlightRect.width + 4,
+          height: highlightRect.height + 4,
+          boxShadow: "0 0 0 2px hsl(var(--primary) / 0.55), 0 0 12px 1px hsl(var(--primary) / 0.18)",
+          animation: "pulse 2s ease-in-out infinite",
+        }}
+      />
 
-      {/* Wizard — always fixed at nav level */}
       <motion.div
         className="fixed z-50 pointer-events-auto"
-        initial={{ opacity: 0, scale: 0.3 }}
+        initial={{ opacity: 0, scale: 0.4 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 100, damping: 18 }}
+        transition={{ type: "spring", stiffness: 110, damping: 18 }}
         style={{
           width: WIZARD_W,
           height: WIZARD_H,
@@ -113,37 +104,30 @@ export function WizardGuide() {
         }}
       >
         <button
-          onClick={() => { setDismissed(true); sfx.click(); }}
-          className="absolute -top-1 -right-1 z-10 w-4 h-4 rounded-full bg-card/80 border border-border/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          onClick={() => {
+            setDismissed(true);
+            sfx.click();
+          }}
+          className="absolute -top-1 -right-1 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-border/50 bg-card/80 text-muted-foreground transition-colors hover:text-foreground"
         >
           <X className="h-2.5 w-2.5" />
         </button>
 
-        <div className="w-full h-full" style={{ imageRendering: "pixelated" }}>
+        <div className="h-full w-full" style={{ imageRendering: "pixelated" }}>
           <WizardAvatar3DCanvas mood={mood} />
         </div>
 
-        {/* Speech bubble */}
-        <div
-          className="absolute pointer-events-auto"
-          style={{ left: WIZARD_W + 4, top: 8, minWidth: 100 }}
-        >
-          {/* Bubble tail */}
-          <div
-            className="absolute -left-[6px] top-3 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[6px] border-r-border"
-          />
-          <div
-            className="absolute -left-[4px] top-3 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-card"
-          />
-          {/* Bubble body */}
-          <div className="bg-card border border-border rounded px-2 py-1.5 shadow-lg">
-            <p className="font-pixel text-[7px] text-foreground whitespace-nowrap leading-relaxed">
+        <div className="absolute pointer-events-auto" style={{ left: WIZARD_W + 4, top: 8, minWidth: 110 }}>
+          <div className="absolute -left-[6px] top-3 h-0 w-0 border-b-[5px] border-b-transparent border-r-[6px] border-r-border border-t-[5px] border-t-transparent" />
+          <div className="absolute -left-[4px] top-3 h-0 w-0 border-b-[5px] border-b-transparent border-r-[5px] border-r-card border-t-[5px] border-t-transparent" />
+          <div className="rounded border border-border bg-card px-2 py-1.5 shadow-lg">
+            <p className="font-pixel text-[7px] leading-relaxed text-foreground whitespace-nowrap">
               {bubbleText}
             </p>
             {!isOnTargetRoute && (
               <button
                 onClick={handleAction}
-                className="font-pixel text-[7px] text-primary hover:text-primary/80 transition-colors cursor-pointer flex items-center gap-0.5 mt-1"
+                className="mt-1 flex cursor-pointer items-center gap-0.5 font-pixel text-[7px] text-primary transition-colors hover:text-primary/80"
               >
                 {currentStep.action}
                 <ChevronRight className="h-2.5 w-2.5" />

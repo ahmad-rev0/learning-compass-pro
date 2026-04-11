@@ -152,6 +152,7 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
                 <Link
                   key={to}
                   to={to}
+                  data-nav-route={to}
                   onClick={() => sfx.navigate()}
                   className={cn(
                     "flex items-center gap-2 px-4 py-3 font-pixel text-[9px] border-b-2 transition-colors whitespace-nowrap",

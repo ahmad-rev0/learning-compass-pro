@@ -109,6 +109,8 @@ export function SelfStudyTakeDialog({ assignment }: SelfStudyTakeDialogProps) {
             onComplete={() => {
               queryClient.invalidateQueries({ queryKey: ["self-study-assignments"] });
               queryClient.invalidateQueries({ queryKey: ["self-study-assignments-list"] });
+              queryClient.invalidateQueries({ queryKey: ["student-quests"] });
+              queryClient.invalidateQueries({ queryKey: ["student-progress"] });
             }}
             isCompleted={isCompleted}
           />
@@ -121,6 +123,8 @@ export function SelfStudyTakeDialog({ assignment }: SelfStudyTakeDialogProps) {
             onComplete={() => {
               queryClient.invalidateQueries({ queryKey: ["self-study-assignments"] });
               queryClient.invalidateQueries({ queryKey: ["self-study-assignments-list"] });
+              queryClient.invalidateQueries({ queryKey: ["student-quests"] });
+              queryClient.invalidateQueries({ queryKey: ["student-progress"] });
             }}
             isCompleted={isCompleted}
           />
@@ -133,6 +137,8 @@ export function SelfStudyTakeDialog({ assignment }: SelfStudyTakeDialogProps) {
             onComplete={() => {
               queryClient.invalidateQueries({ queryKey: ["self-study-assignments"] });
               queryClient.invalidateQueries({ queryKey: ["self-study-assignments-list"] });
+              queryClient.invalidateQueries({ queryKey: ["student-quests"] });
+              queryClient.invalidateQueries({ queryKey: ["student-progress"] });
             }}
             isCompleted={isCompleted}
           />

@@ -6,88 +6,165 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+type PerformanceSignal = {
+  source: "submission" | "self_study";
+  scorePct: number;
+  timestamp: string;
+  improvements: string[];
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { user_id } = await req.json();
-    if (!user_id) return new Response(JSON.stringify({ error: "user_id required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!user_id) {
+      return new Response(JSON.stringify({ error: "user_id required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
 
-    // Gather recent data
-    const [progRes, subsRes, questsRes] = await Promise.all([
+    const [progRes, subsRes, selfStudyRes, questsRes] = await Promise.all([
       supabase.from("gamification_progress").select("*").eq("user_id", user_id).single(),
-      supabase.from("submissions").select("score, ai_feedback, graded_at, assignments(title, max_score)").eq("student_id", user_id).eq("status", "graded").order("graded_at", { ascending: false }).limit(10),
+      supabase
+        .from("submissions")
+        .select("score, ai_feedback, graded_at, assignments(title, max_score)")
+        .eq("student_id", user_id)
+        .eq("status", "graded")
+        .order("graded_at", { ascending: false })
+        .limit(10),
+      supabase
+        .from("self_study_assignments")
+        .select("score, subject, topic, difficulty, updated_at")
+        .eq("user_id", user_id)
+        .in("status", ["completed", "graded"])
+        .not("score", "is", null)
+        .order("updated_at", { ascending: false })
+        .limit(10),
       supabase.from("quests").select("*").eq("user_id", user_id).eq("status", "active").limit(10),
     ]);
 
     const progress = progRes.data;
     const subs = subsRes.data || [];
+    const selfStudy = selfStudyRes.data || [];
     const activeQuests = questsRes.data || [];
 
     if (!progress) {
-      return new Response(JSON.stringify({ success: true, nudge: null }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ success: true, nudge: null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Detect issues
+    const submissionSignals: PerformanceSignal[] = subs.map((s: any) => ({
+      source: "submission",
+      scorePct: ((s.score || 0) / (s.assignments?.max_score || 100)) * 100,
+      timestamp: s.graded_at || new Date().toISOString(),
+      improvements: Array.isArray(s.ai_feedback?.improvements) ? s.ai_feedback.improvements : [],
+    }));
+
+    const selfStudySignals: PerformanceSignal[] = selfStudy.map((s: any) => ({
+      source: "self_study",
+      scorePct: Number(s.score || 0),
+      timestamp: s.updated_at || new Date().toISOString(),
+      improvements:
+        Number(s.score || 0) < 70
+          ? [
+              `${s.topic} fundamentals`,
+              `${s.subject} ${s.difficulty} practice`,
+            ]
+          : [],
+    }));
+
+    const signals = [...submissionSignals, ...selfStudySignals]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10);
+
     const momentum = Number(progress.momentum_score);
-    const scores = subs.map((s: any) => ((s.score || 0) / (s.assignments?.max_score || 100)) * 100);
-    const recentAvg = scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : 50;
+    const scores = signals.map((s) => s.scorePct);
+    const recentAvg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 50;
+    const lowScoreCount = scores.filter((score) => score < 50).length;
     const lastActivity = progress.last_activity_at ? new Date(progress.last_activity_at) : null;
     const hoursSinceActivity = lastActivity ? (Date.now() - lastActivity.getTime()) / 3600000 : 999;
     const staleQuests = activeQuests.length;
 
-    // Determine if intervention needed
     let interventionNeeded = false;
     let interventionType = "encouragement";
 
-    if (momentum < 25) { interventionNeeded = true; interventionType = "emergency_recovery"; }
-    else if (hoursSinceActivity > 48) { interventionNeeded = true; interventionType = "re_engagement"; }
-    else if (recentAvg < 40) { interventionNeeded = true; interventionType = "skill_support"; }
-    else if (momentum < 50 && staleQuests > 3) { interventionNeeded = true; interventionType = "quest_focus"; }
-    else if (scores.length >= 3 && scores[0] > scores[1] && scores[1] > scores[2]) { interventionNeeded = true; interventionType = "momentum_boost"; }
+    if (momentum < 25) {
+      interventionNeeded = true;
+      interventionType = "emergency_recovery";
+    } else if (hoursSinceActivity > 48) {
+      interventionNeeded = true;
+      interventionType = "re_engagement";
+    } else if (lowScoreCount >= 2) {
+      interventionNeeded = true;
+      interventionType = "skill_support";
+    } else if (recentAvg <= 40) {
+      interventionNeeded = true;
+      interventionType = "skill_support";
+    } else if (momentum < 50 && staleQuests > 3) {
+      interventionNeeded = true;
+      interventionType = "quest_focus";
+    } else if (scores.length >= 3 && scores[0] > scores[1] && scores[1] > scores[2]) {
+      interventionNeeded = true;
+      interventionType = "momentum_boost";
+    }
+
+    const weaknesses = [...new Set(signals.flatMap((s) => s.improvements).filter(Boolean))].slice(0, 5);
 
     if (!interventionNeeded) {
-      // Log that we checked but no action needed
       await supabase.from("agent_logs").insert({
         user_id,
         detected_state: "normal",
         confidence: 0.9,
-        patterns_found: [],
+        patterns_found: weaknesses,
         action_taken: "No intervention needed",
         reasoning: `Momentum ${momentum}%, avg score ${recentAvg.toFixed(0)}%, ${hoursSinceActivity.toFixed(0)}h since last activity. All within healthy range.`,
-        metrics_snapshot: { momentum, recentAvg, hoursSinceActivity, staleQuests },
+        metrics_snapshot: {
+          momentum,
+          recentAvg,
+          lowScoreCount,
+          hoursSinceActivity,
+          staleQuests,
+          signalCount: signals.length,
+          selfStudyCount: selfStudySignals.length,
+        },
         trigger_source: "proactive_check",
       });
-      return new Response(JSON.stringify({ success: true, nudge: null, state: "healthy" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    // AI generates contextual nudge
-    const weaknesses: string[] = [];
-    for (const s of subs) {
-      const fb = s.ai_feedback as any;
-      if (fb?.improvements) weaknesses.push(...fb.improvements);
+      return new Response(JSON.stringify({ success: true, nudge: null, state: "healthy" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const context = `Student state:
 - Momentum: ${momentum}%
 - Recent avg score: ${recentAvg.toFixed(0)}%
+- Low scores under 50%: ${lowScoreCount}
 - Hours since last activity: ${hoursSinceActivity.toFixed(0)}
 - Active quests: ${staleQuests}
 - Streak: ${progress.streak_days} days
 - Level: ${progress.level}
 - Intervention type: ${interventionType}
-- Known weaknesses: ${[...new Set(weaknesses)].slice(0, 3).join("; ") || "none"}`;
+- Signals considered: ${signals.length}
+- Known weaknesses: ${weaknesses.slice(0, 3).join("; ") || "none"}`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
         messages: [
-          { role: "system", content: `You are Atlas's proactive learning agent. Generate a motivating, personalized nudge for a student who needs intervention. Be specific — reference their actual data. Keep it concise and actionable.` },
+          {
+            role: "system",
+            content: "You are Atlas's proactive learning agent. Generate a motivating, personalized nudge for a student who needs intervention. Be specific, concise, and actionable.",
+          },
           { role: "user", content: `Generate a nudge:\n${context}` },
         ],
         tools: [{
@@ -120,37 +197,53 @@ serve(async (req) => {
     if (!tc) throw new Error("No nudge from AI");
     const nudge = JSON.parse(tc.function.arguments);
 
-    // Create a quest from the nudge
     if (nudge.quest_title) {
       await supabase.from("quests").insert({
         user_id,
         title: `🔔 ${nudge.quest_title}`,
         description: nudge.quest_description,
-        type: interventionType === "emergency_recovery" ? "recovery" : "growth",
+        type: interventionType === "emergency_recovery" || interventionType === "skill_support" ? "recovery" : "growth",
         xp_reward: nudge.xp_bonus,
+        error_pattern: weaknesses[0] || null,
       });
     }
 
-    // Log agent decision
-    const confidence = interventionType === "emergency_recovery" ? 0.95
-      : interventionType === "re_engagement" ? 0.9
-      : interventionType === "skill_support" ? 0.85
-      : 0.7;
+    const confidence = interventionType === "emergency_recovery"
+      ? 0.95
+      : interventionType === "re_engagement"
+        ? 0.9
+        : interventionType === "skill_support"
+          ? 0.88
+          : 0.7;
 
     await supabase.from("agent_logs").insert({
       user_id,
       detected_state: interventionType,
       confidence,
-      patterns_found: [...new Set(weaknesses)].slice(0, 3),
+      patterns_found: weaknesses.slice(0, 3),
       action_taken: `Proactive nudge: ${nudge.message}`,
       reasoning: `Triggered ${interventionType} intervention. ${nudge.action_suggestion}`,
-      metrics_snapshot: { momentum, recentAvg, hoursSinceActivity, staleQuests, streak: progress.streak_days },
+      metrics_snapshot: {
+        momentum,
+        recentAvg,
+        lowScoreCount,
+        hoursSinceActivity,
+        staleQuests,
+        streak: progress.streak_days,
+        signalCount: signals.length,
+        selfStudyCount: selfStudySignals.length,
+      },
       trigger_source: "proactive_check",
     });
 
-    return new Response(JSON.stringify({ success: true, nudge, intervention_type: interventionType }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ success: true, nudge, intervention_type: interventionType }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("agent-nudge error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
