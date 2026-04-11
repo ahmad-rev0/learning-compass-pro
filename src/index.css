@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap');
 
 @layer base {
   :root {
@@ -109,14 +109,14 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'Silkscreen', monospace;
     font-size: 10px;
     line-height: 1.6;
     image-rendering: pixelated;
   }
 
   code, pre, .font-mono {
-    font-family: 'Press Start 2P', cursive;
+    font-family: 'Silkscreen', monospace;
   }
 }
 

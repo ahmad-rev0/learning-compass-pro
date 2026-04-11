@@ -14,10 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        pixel: ['"Press Start 2P"', "cursive"],
-        retro: ['"Press Start 2P"', "cursive"],
-        mono: ['"Press Start 2P"', "cursive"],
-        sans: ['"Press Start 2P"', "cursive"],
+        pixel: ['"Silkscreen"', "monospace"],
+        retro: ['"Silkscreen"', "monospace"],
+        mono: ['"Silkscreen"', "monospace"],
+        sans: ['"Silkscreen"', "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
