@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, FileText, BookOpen } from "lucide-react";
 import { sfx } from "@/lib/retroSfx";
 
 export default function StudentUpload() {
@@ -23,6 +23,9 @@ export default function StudentUpload() {
   const [assignmentId, setAssignmentId] = useState("");
   const [grading, setGrading] = useState(false);
   const [lastFeedback, setLastFeedback] = useState<any>(isDemoMode ? demoLastFeedback : null);
+  const [mode, setMode] = useState<"assignment" | "external">("external");
+  const [externalSubject, setExternalSubject] = useState("");
+  const [externalTopic, setExternalTopic] = useState("");
 
   const { data: assignments = [] } = useQuery({
     queryKey: ["student-assignments-for-upload"],
@@ -44,61 +47,116 @@ export default function StudentUpload() {
         toast.info("Submissions are view-only in demo mode");
         return { graded: false };
       }
-      if (!assignmentId) throw new Error("Please select an assignment");
-      if (!content && !file) throw new Error("Please provide content or upload a file");
 
-      let fileUrl: string | null = null;
-      if (file) {
-        const path = `${user!.id}/${assignmentId}/${Date.now()}_${file.name}`;
-        const { error: uploadError } = await supabase.storage
+      if (mode === "assignment") {
+        if (!assignmentId) throw new Error("Please select an assignment");
+        if (!content && !file) throw new Error("Please provide content or upload a file");
+
+        let fileUrl: string | null = null;
+        if (file) {
+          const path = `${user!.id}/${assignmentId}/${Date.now()}_${file.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from("submissions")
+            .upload(path, file);
+          if (uploadError) throw uploadError;
+          fileUrl = path;
+        }
+
+        const { data: submission, error: subError } = await supabase
           .from("submissions")
-          .upload(path, file);
-        if (uploadError) throw uploadError;
-        fileUrl = path;
+          .insert({
+            assignment_id: assignmentId,
+            student_id: user!.id,
+            content: content || null,
+            file_url: fileUrl,
+            status: "pending",
+          })
+          .select("id")
+          .single();
+
+        if (subError) throw subError;
+
+        setGrading(true);
+        const { data: gradeData, error: gradeError } = await supabase.functions.invoke(
+          "grade-submission",
+          { body: { submission_id: submission.id } }
+        );
+
+        if (gradeError) {
+          console.error("Grading error:", gradeError);
+          toast.info("Submitted! AI grading will process shortly.");
+          return { graded: false };
+        }
+
+        return { graded: true, ...gradeData };
+      } else {
+        // External document mode
+        if (!content && !file) throw new Error("Please provide content or upload a file");
+        if (!externalSubject.trim()) throw new Error("Please enter a subject");
+
+        let fileContent = content;
+        if (file && !content) {
+          // Read text from file if no content typed
+          try {
+            fileContent = await file.text();
+          } catch {
+            fileContent = `(File uploaded: ${file.name}, ${(file.size / 1024).toFixed(1)} KB)`;
+          }
+        }
+
+        setGrading(true);
+
+        // Use the self-study system to grade external documents
+        const { data: assignment, error: createError } = await supabase
+          .from("self_study_assignments")
+          .insert({
+            user_id: user!.id,
+            subject: externalSubject.trim(),
+            topic: externalTopic.trim() || "General",
+            type: "free_text",
+            difficulty: "intermediate",
+            content: { title: `${externalSubject}: ${externalTopic || "External Submission"}`, question: "External document submitted for AI review." },
+            student_answer: fileContent || null,
+            status: "completed",
+            generated_by: "external_upload",
+          })
+          .select("id")
+          .single();
+
+        if (createError) throw createError;
+
+        // Call grade function via self-study grading
+        const { data: gradeData, error: gradeError } = await supabase.functions.invoke(
+          "grade-submission",
+          { body: { self_study_id: assignment.id } }
+        );
+
+        if (gradeError) {
+          console.error("Grading error:", gradeError);
+          toast.info("Submitted! AI grading will process shortly.");
+          return { graded: false };
+        }
+
+        return { graded: true, ...gradeData };
       }
-
-      const { data: submission, error: subError } = await supabase
-        .from("submissions")
-        .insert({
-          assignment_id: assignmentId,
-          student_id: user!.id,
-          content: content || null,
-          file_url: fileUrl,
-          status: "pending",
-        })
-        .select("id")
-        .single();
-
-      if (subError) throw subError;
-
-      setGrading(true);
-      const { data: gradeData, error: gradeError } = await supabase.functions.invoke(
-        "grade-submission",
-        { body: { submission_id: submission.id } }
-      );
-
-      if (gradeError) {
-        console.error("Grading error:", gradeError);
-        toast.info("Submitted! AI grading will process shortly.");
-        return { graded: false };
-      }
-
-      return { graded: true, ...gradeData };
     },
     onSuccess: (result) => {
       setGrading(false);
       if (result?.graded && result?.grade) {
         setLastFeedback(result.grade);
         sfx.xp();
-        toast.success(`Graded! Score: ${result.grade.score} | +${result.xp_earned} XP ⚡`);
+        toast.success(`Graded! Score: ${result.grade.score} | +${result.xp_earned || 0} XP ⚡`);
       }
       setContent("");
       setFile(null);
       setAssignmentId("");
+      setExternalSubject("");
+      setExternalTopic("");
       queryClient.invalidateQueries({ queryKey: ["student-progress"] });
       queryClient.invalidateQueries({ queryKey: ["student-quests"] });
       queryClient.invalidateQueries({ queryKey: ["badge-unlocks"] });
       queryClient.invalidateQueries({ queryKey: ["student-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["self-study-assignments"] });
     },
     onError: (e: any) => {
       setGrading(false);
@@ -113,27 +171,70 @@ export default function StudentUpload() {
         <Upload className="h-4 w-4" /> SUBMIT WORK
       </h2>
 
+      {/* Mode toggle */}
+      <div className="flex gap-2">
+        <Button
+          variant={mode === "external" ? "default" : "outline"}
+          size="sm"
+          className="font-pixel text-[8px] flex-1"
+          onClick={() => { setMode("external"); sfx.click(); }}
+        >
+          <FileText className="h-3 w-3 mr-1" /> EXTERNAL DOC
+        </Button>
+        <Button
+          variant={mode === "assignment" ? "default" : "outline"}
+          size="sm"
+          className="font-pixel text-[8px] flex-1"
+          onClick={() => { setMode("assignment"); sfx.click(); }}
+        >
+          <BookOpen className="h-3 w-3 mr-1" /> COURSE ASSIGNMENT
+        </Button>
+      </div>
+
       <Card className="border-2 border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="font-pixel text-[10px]">📤 SUBMIT FOR AI GRADING</CardTitle>
+          <CardTitle className="font-pixel text-[10px]">
+            {mode === "external" ? "📄 SUBMIT EXTERNAL DOCUMENT" : "📤 SUBMIT COURSE ASSIGNMENT"}
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Submit your work and get instant AI-powered feedback, XP, and personalized quests!
+            {mode === "external"
+              ? "Upload any document or paste text for AI feedback — no course assignment needed!"
+              : "Submit work for a specific course assignment."}
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={(e) => { e.preventDefault(); upload.mutate(); }} className="space-y-4">
-            <Select value={assignmentId} onValueChange={setAssignmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select assignment..." />
-              </SelectTrigger>
-              <SelectContent>
-                {assignments.map((a: any) => (
-                  <SelectItem key={a.id} value={a.id}>
-                    {a.title} ({a.type})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {mode === "assignment" ? (
+              <Select value={assignmentId} onValueChange={setAssignmentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={assignments.length === 0 ? "No assignments available" : "Select assignment..."} />
+                </SelectTrigger>
+                <SelectContent>
+                  {assignments.length === 0 ? (
+                    <SelectItem value="__none" disabled>No assignments — try External Doc mode</SelectItem>
+                  ) : (
+                    assignments.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.title} ({a.type})
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="Subject (e.g. Physics)"
+                  value={externalSubject}
+                  onChange={(e) => setExternalSubject(e.target.value)}
+                />
+                <Input
+                  placeholder="Topic (e.g. Thermodynamics)"
+                  value={externalTopic}
+                  onChange={(e) => setExternalTopic(e.target.value)}
+                />
+              </div>
+            )}
 
             <Select value={type} onValueChange={setType}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -146,7 +247,7 @@ export default function StudentUpload() {
 
             {type !== "file_upload" && (
               <Textarea
-                placeholder={type === "code" ? "Paste your code here..." : "Write your answer here..."}
+                placeholder={type === "code" ? "Paste your code here..." : "Write or paste your content here..."}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 className={`min-h-[150px] ${type === "code" ? "text-sm" : ""}`}
