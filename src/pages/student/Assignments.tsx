@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { FileText, Code, Upload, BookOpen, List, Clock, CheckCircle, Send, Bot } from "lucide-react";
+import { SelfStudyTakeDialog } from "@/components/SelfStudyTakeDialog";
 
 const TYPE_META: Record<string, { icon: any; label: string; color: string }> = {
   mcq: { icon: List, label: "Multiple Choice", color: "bg-primary/10 text-primary" },
@@ -123,7 +124,7 @@ export default function StudentAssignments() {
                             )}
                           </div>
                         </div>
-                      </div>
+                        <SelfStudyTakeDialog assignment={a} />
                     </CardContent>
                   </Card>
                 </motion.div>
