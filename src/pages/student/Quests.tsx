@@ -271,16 +271,16 @@ export default function StudentQuests() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="font-pixel text-[8px] border-primary text-primary"
+                                className={`font-pixel text-[8px] ${allStepsChecked(quest.id, steps.length) ? "border-primary text-primary" : "border-muted text-muted-foreground cursor-not-allowed opacity-50"}`}
                                 onClick={() => completeQuest.mutate(quest.id)}
-                                disabled={completeQuest.isPending}
+                                disabled={completeQuest.isPending || !allStepsChecked(quest.id, steps.length)}
                               >
                                 {completeQuest.isPending ? (
                                   <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                                 ) : (
                                   <CheckCircle className="h-3 w-3 mr-1" />
                                 )}
-                                COMPLETE
+                                {allStepsChecked(quest.id, steps.length) ? "COMPLETE" : `${(checkedSteps[quest.id] || []).filter(Boolean).length}/${steps.length}`}
                               </Button>
                             )}
                             {isWorking && (
@@ -305,15 +305,20 @@ export default function StudentQuests() {
                               exit={{ height: 0, opacity: 0 }}
                               className="mt-3 space-y-1.5 border-t border-border pt-3"
                             >
-                              <p className="font-pixel text-[8px] text-accent mb-1">📋 QUEST STEPS</p>
-                              {steps.map((step: string, si: number) => (
-                                <div key={si} className="flex items-start gap-2 text-sm">
-                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center border border-border bg-muted font-pixel text-[7px] text-muted-foreground rounded">
-                                    {si + 1}
+                              <p className="font-pixel text-[8px] text-accent mb-1">📋 QUEST STEPS — check each off when done</p>
+                              {steps.map((step: string, si: number) => {
+                                const isChecked = checkedSteps[quest.id]?.[si] || false;
+                                return (
+                                  <div
+                                    key={si}
+                                    className={`flex items-start gap-2 text-sm cursor-pointer p-1.5 rounded transition-colors ${isChecked ? "bg-primary/10" : "hover:bg-muted/50"}`}
+                                    onClick={() => toggleStep(quest.id, si)}
+                                  >
+                                    <Checkbox checked={isChecked} className="mt-0.5 shrink-0" />
+                                    <span className={isChecked ? "text-foreground line-through opacity-60" : "text-muted-foreground"}>{step}</span>
                                   </div>
-                                  <span className="text-muted-foreground">{step}</span>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </motion.div>
                           )}
                         </AnimatePresence>
