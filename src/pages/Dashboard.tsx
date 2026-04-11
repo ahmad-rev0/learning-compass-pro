@@ -91,12 +91,18 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
 
   return (
     <div className="dashboard-shell min-h-screen bg-background pixel-grid-bg">
-      <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
-        <div className="container flex items-center justify-between py-4">
-          <div className="flex items-center gap-5">
+      <header
+        className={cn(
+          "sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm transition-all duration-300",
+          !headerVisible && "-translate-y-full opacity-0 pointer-events-none"
+        )}
+      >
+        <div className="container flex items-center justify-between py-2">
+          <div className="flex items-center gap-4">
             <motion.img
               src={atlasLogo}
               alt="Atlas"
+              className="w-16 h-16 object-contain"
               width={144}
               height={144}
               animate={{ y: [0, -3, 0] }}
