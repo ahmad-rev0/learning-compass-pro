@@ -183,19 +183,17 @@ function PathConnector({
       new THREE.Vector3(...mid),
       new THREE.Vector3(...to)
     );
-    const points = curve.getPoints(20);
-    const geo = new THREE.BufferGeometry().setFromPoints(points);
-    return geo;
+    return new THREE.TubeGeometry(curve, 20, 0.03, 6, false);
   }, [from, to]);
 
   return (
-    <line geometry={geometry}>
-      <lineBasicMaterial
+    <mesh geometry={geometry}>
+      <meshBasicMaterial
         color={completed ? "#22c55e" : "#6b7280"}
         transparent
         opacity={completed ? 0.8 : 0.3}
       />
-    </line>
+    </mesh>
   );
 }
 
