@@ -123,9 +123,27 @@ export default function StudentQuests() {
   const completedQuests = quests.filter((q) => q.status === "completed");
 
   const handleStartQuest = (questId: string) => {
+    const quest = quests.find((q) => q.id === questId);
+    const steps: string[] = Array.isArray((quest as any)?.steps) ? (quest as any).steps : [];
     setWorkingQuestId(questId);
+    setCheckedSteps((prev) => ({ ...prev, [questId]: new Array(steps.length).fill(false) }));
     sfx.click();
-    toast("Quest started! Follow the steps below.", { icon: "⚔️" });
+    toast("Quest started! Complete each step, then finish.", { icon: "⚔️" });
+  };
+
+  const toggleStep = (questId: string, stepIndex: number) => {
+    setCheckedSteps((prev) => {
+      const arr = [...(prev[questId] || [])];
+      arr[stepIndex] = !arr[stepIndex];
+      return { ...prev, [questId]: arr };
+    });
+    sfx.click();
+  };
+
+  const allStepsChecked = (questId: string, stepCount: number) => {
+    const arr = checkedSteps[questId];
+    if (!arr || stepCount === 0) return true;
+    return arr.length >= stepCount && arr.every(Boolean);
   };
 
   return (
