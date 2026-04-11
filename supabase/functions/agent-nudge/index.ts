@@ -11,7 +11,36 @@ type PerformanceSignal = {
   scorePct: number;
   timestamp: string;
   improvements: string[];
+  topic?: string;
+  subject?: string;
 };
+
+async function searchExa(query: string, apiKey: string): Promise<{ title: string; url: string; snippet: string } | null> {
+  try {
+    const res = await fetch("https://api.exa.ai/search", {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        numResults: 1,
+        type: "neural",
+        useAutoprompt: true,
+        contents: { text: { maxCharacters: 300 } },
+      }),
+    });
+    if (!res.ok) {
+      console.error("Exa search failed:", res.status);
+      return null;
+    }
+    const data = await res.json();
+    const r = data.results?.[0];
+    if (!r) return null;
+    return { title: r.title || "", url: r.url, snippet: (r.text || "").slice(0, 300) };
+  } catch (e) {
+    console.error("Exa error:", e);
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -27,6 +56,7 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const exaKey = Deno.env.get("EXA_API_KEY") || "";
 
     const [progRes, subsRes, selfStudyRes, questsRes] = await Promise.all([
       supabase.from("gamification_progress").select("*").eq("user_id", user_id).single(),
@@ -70,12 +100,11 @@ serve(async (req) => {
       source: "self_study",
       scorePct: Number(s.score || 0),
       timestamp: s.updated_at || new Date().toISOString(),
+      topic: s.topic,
+      subject: s.subject,
       improvements:
         Number(s.score || 0) < 70
-          ? [
-              `${s.topic} fundamentals`,
-              `${s.subject} ${s.difficulty} practice`,
-            ]
+          ? [`${s.topic} fundamentals`, `${s.subject} ${s.difficulty} practice`]
           : [],
     }));
 
@@ -112,9 +141,14 @@ serve(async (req) => {
     } else if (scores.length >= 3 && scores[0] > scores[1] && scores[1] > scores[2]) {
       interventionNeeded = true;
       interventionType = "momentum_boost";
+    } else if (momentum >= 50 && recentAvg >= 60) {
+      // Student is doing well — generate a side quest for enrichment
+      interventionNeeded = true;
+      interventionType = "side_quest";
     }
 
     const weaknesses = [...new Set(signals.flatMap((s) => s.improvements).filter(Boolean))].slice(0, 5);
+    const recentTopics = [...new Set(signals.filter(s => s.topic).map(s => `${s.subject}: ${s.topic}`))].slice(0, 3);
 
     if (!interventionNeeded) {
       await supabase.from("agent_logs").insert({
@@ -124,15 +158,7 @@ serve(async (req) => {
         patterns_found: weaknesses,
         action_taken: "No intervention needed",
         reasoning: `Momentum ${momentum}%, avg score ${recentAvg.toFixed(0)}%, ${hoursSinceActivity.toFixed(0)}h since last activity. All within healthy range.`,
-        metrics_snapshot: {
-          momentum,
-          recentAvg,
-          lowScoreCount,
-          hoursSinceActivity,
-          staleQuests,
-          signalCount: signals.length,
-          selfStudyCount: selfStudySignals.length,
-        },
+        metrics_snapshot: { momentum, recentAvg, lowScoreCount, hoursSinceActivity, staleQuests, signalCount: signals.length },
         trigger_source: "proactive_check",
       });
       return new Response(JSON.stringify({ success: true, nudge: null, state: "healthy" }), {
@@ -149,8 +175,10 @@ serve(async (req) => {
 - Streak: ${progress.streak_days} days
 - Level: ${progress.level}
 - Intervention type: ${interventionType}
-- Signals considered: ${signals.length}
+- Recent topics: ${recentTopics.join("; ") || "none"}
 - Known weaknesses: ${weaknesses.slice(0, 3).join("; ") || "none"}`;
+
+    const isSideQuest = interventionType === "side_quest";
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -163,58 +191,81 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are Atlas's proactive learning agent. Generate a motivating, personalized nudge for a student who needs intervention. Be specific, concise, and actionable.",
+            content: isSideQuest
+              ? "You are Atlas's learning agent. Generate an engaging SIDE QUEST for a student doing well. Side quests are bonus enrichment — fun deep-dives into related topics, advanced techniques, or interesting tangential subjects. Include 3-5 concrete steps."
+              : "You are Atlas's proactive learning agent. Generate a motivating, personalized quest for a student who needs intervention. Include 3-5 concrete action steps. Be specific and actionable.",
           },
-          { role: "user", content: `Generate a nudge:\n${context}` },
+          { role: "user", content: `Generate a quest:\n${context}` },
         ],
         tools: [{
           type: "function",
           function: {
-            name: "create_nudge",
-            description: "Create a proactive intervention nudge",
+            name: "create_quest",
+            description: "Create a quest with steps",
             parameters: {
               type: "object",
               properties: {
                 message: { type: "string", description: "Short motivational message (max 100 chars)" },
-                action_suggestion: { type: "string", description: "Specific action the student should take" },
-                quest_title: { type: "string", description: "Optional quest to generate for the student" },
-                quest_description: { type: "string", description: "Quest details" },
-                xp_bonus: { type: "number", description: "Bonus XP for acting on this nudge (10-50)" },
-                urgency: { type: "string", enum: ["low", "medium", "high"], description: "How urgent is this intervention" },
+                action_suggestion: { type: "string", description: "Overall action the student should take" },
+                quest_title: { type: "string", description: "Quest title (concise, fun)" },
+                quest_description: { type: "string", description: "Quest details (1-2 sentences)" },
+                steps: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "3-5 concrete steps to complete the quest",
+                },
+                exa_search_query: { type: "string", description: "A search query to find a helpful learning resource for this quest" },
+                xp_bonus: { type: "number", description: "XP reward (10-50)" },
+                urgency: { type: "string", enum: ["low", "medium", "high"] },
               },
-              required: ["message", "action_suggestion", "quest_title", "quest_description", "xp_bonus", "urgency"],
+              required: ["message", "action_suggestion", "quest_title", "quest_description", "steps", "exa_search_query", "xp_bonus", "urgency"],
               additionalProperties: false,
             },
           },
         }],
-        tool_choice: { type: "function", function: { name: "create_nudge" } },
+        tool_choice: { type: "function", function: { name: "create_quest" } },
       }),
     });
 
     if (!aiRes.ok) throw new Error(`AI error: ${aiRes.status}`);
     const aiData = await aiRes.json();
     const tc = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!tc) throw new Error("No nudge from AI");
+    if (!tc) throw new Error("No quest from AI");
     const nudge = JSON.parse(tc.function.arguments);
 
+    // Search Exa for a relevant study resource
+    let resourceUrl: string | null = null;
+    if (nudge.exa_search_query && exaKey) {
+      const exaResult = await searchExa(nudge.exa_search_query, exaKey);
+      if (exaResult) {
+        resourceUrl = exaResult.url;
+        console.log("Exa resource found:", exaResult.title, exaResult.url);
+      }
+    }
+
     if (nudge.quest_title) {
+      const questType = isSideQuest
+        ? "sidequest"
+        : (interventionType === "emergency_recovery" || interventionType === "skill_support")
+          ? "recovery"
+          : "growth";
+
       await supabase.from("quests").insert({
         user_id,
-        title: `🔔 ${nudge.quest_title}`,
+        title: isSideQuest ? `🎈 ${nudge.quest_title}` : `🔔 ${nudge.quest_title}`,
         description: nudge.quest_description,
-        type: interventionType === "emergency_recovery" || interventionType === "skill_support" ? "recovery" : "growth",
+        type: questType,
         xp_reward: nudge.xp_bonus,
         error_pattern: weaknesses[0] || null,
+        resource_url: resourceUrl,
+        steps: nudge.steps || [],
       });
     }
 
-    const confidence = interventionType === "emergency_recovery"
-      ? 0.95
-      : interventionType === "re_engagement"
-        ? 0.9
-        : interventionType === "skill_support"
-          ? 0.88
-          : 0.7;
+    const confidence = interventionType === "emergency_recovery" ? 0.95
+      : interventionType === "re_engagement" ? 0.9
+      : interventionType === "skill_support" ? 0.88
+      : 0.7;
 
     await supabase.from("agent_logs").insert({
       user_id,
@@ -224,19 +275,14 @@ serve(async (req) => {
       action_taken: `Proactive nudge: ${nudge.message}`,
       reasoning: `Triggered ${interventionType} intervention. ${nudge.action_suggestion}`,
       metrics_snapshot: {
-        momentum,
-        recentAvg,
-        lowScoreCount,
-        hoursSinceActivity,
-        staleQuests,
-        streak: progress.streak_days,
-        signalCount: signals.length,
-        selfStudyCount: selfStudySignals.length,
+        momentum, recentAvg, lowScoreCount, hoursSinceActivity, staleQuests,
+        streak: progress.streak_days, signalCount: signals.length,
+        resourceUrl,
       },
       trigger_source: "proactive_check",
     });
 
-    return new Response(JSON.stringify({ success: true, nudge, intervention_type: interventionType }), {
+    return new Response(JSON.stringify({ success: true, nudge, intervention_type: interventionType, resource_url: resourceUrl }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

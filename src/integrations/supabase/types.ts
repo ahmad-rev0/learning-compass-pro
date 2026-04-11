@@ -310,6 +310,7 @@ export type Database = {
           id: string
           resource_url: string | null
           status: string
+          steps: Json
           title: string
           type: string
           updated_at: string
@@ -325,6 +326,7 @@ export type Database = {
           id?: string
           resource_url?: string | null
           status?: string
+          steps?: Json
           title: string
           type?: string
           updated_at?: string
@@ -340,6 +342,7 @@ export type Database = {
           id?: string
           resource_url?: string | null
           status?: string
+          steps?: Json
           title?: string
           type?: string
           updated_at?: string
