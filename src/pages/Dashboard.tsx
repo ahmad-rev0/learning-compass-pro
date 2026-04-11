@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Navigate, useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import DemoTour from "@/components/DemoTour";
@@ -34,6 +34,8 @@ const STUDENT_NAV = [
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [soundOn, setSoundOn] = useState(!sfx.muted);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const mainRef = useRef<HTMLElement>(null);
   const [showSplash, setShowSplash] = useState(true);
   const { user, role, loading, signOut } = useAuth();
   const { isDemoMode, exitDemo } = useDemo();
@@ -43,6 +45,13 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
   const handleSplashComplete = () => {
     setShowSplash(false);
   };
+
+  // Hide header when user scrolls past ~120px (start of content area)
+  useEffect(() => {
+    const handleScroll = () => setHeaderVisible(window.scrollY < 120);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Show splash BEFORE any auth/loading guards
   if (showSplash) {
@@ -82,14 +91,18 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
 
   return (
     <div className="dashboard-shell min-h-screen bg-background pixel-grid-bg">
-      <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
-        <div className="container flex items-center justify-between py-4">
-          <div className="flex items-center gap-5">
+      <header
+        className={cn(
+          "sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm transition-all duration-300",
+          !headerVisible && "-translate-y-full opacity-0 pointer-events-none"
+        )}
+      >
+        <div className="container flex items-center justify-between py-2 h-16">
+          <div className="flex items-center gap-4">
             <motion.img
               src={atlasLogo}
               alt="Atlas"
-              width={144}
-              height={144}
+              className="w-[88px] h-[88px] object-contain -my-3"
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             />
