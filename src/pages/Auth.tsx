@@ -1,19 +1,29 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { Play } from "lucide-react";
 import atlasLogo from "@/assets/atlas-logo.png";
 
 export default function Auth() {
   const { user, loading } = useAuth();
+  const { isDemoMode, enterDemo } = useDemo();
+  const navigate = useNavigate();
 
-  if (loading) return null;
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (loading && !isDemoMode) return null;
+  if (user || isDemoMode) return <Navigate to="/dashboard" replace />;
+
+  const handleDemo = () => {
+    enterDemo();
+    toast.success("Demo mode activated! Explore the full platform ✨");
+    navigate("/dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-background pixel-grid-bg flex items-center justify-center p-4">
@@ -33,6 +43,34 @@ export default function Auth() {
           />
           <h1 className="font-pixel text-3xl mt-4 text-foreground">ATLAS</h1>
           <p className="text-muted-foreground text-xl mt-2">Agent × Gamification × Learning</p>
+        </div>
+
+        {/* Demo Button */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="mb-6"
+        >
+          <Button
+            onClick={handleDemo}
+            className="w-full h-16 font-pixel text-lg bg-gradient-to-r from-primary via-accent to-primary hover:opacity-90 text-primary-foreground border-2 border-primary/50 shadow-[0_0_20px_hsl(var(--primary)/0.3)] transition-all hover:shadow-[0_0_30px_hsl(var(--primary)/0.5)]"
+          >
+            <Play className="h-5 w-5 mr-2" />
+            LAUNCH DEMO
+          </Button>
+          <p className="text-center text-sm text-muted-foreground mt-2">
+            Experience the full platform — AI grading, agentic quests, Exa resources & more
+          </p>
+        </motion.div>
+
+        <div className="relative mb-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-background px-4 text-muted-foreground font-pixel">OR SIGN IN</span>
+          </div>
         </div>
 
         <Card className="border-3 border-border">

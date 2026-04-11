@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Navigate, useLocation, Link } from "react-router-dom";
+import { Navigate, useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy, Volume2, VolumeX, Brain, CalendarDays } from "lucide-react";
+import { BookOpen, FileText, Users, BarChart3, Inbox, Swords, TrendingUp, Upload, Trophy, Volume2, VolumeX, Brain, CalendarDays, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sfx } from "@/lib/retroSfx";
 import atlasLogo from "@/assets/atlas-logo.png";
@@ -30,11 +32,16 @@ const STUDENT_NAV = [
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [soundOn, setSoundOn] = useState(!sfx.muted);
   const { user, role, loading, signOut } = useAuth();
+  const { isDemoMode, exitDemo } = useDemo();
   const location = useLocation();
+  const navigate = useNavigate();
 
-  if (loading) return null;
-  if (!user) return <Navigate to="/login" replace />;
-  if (!role) {
+  if (loading && !isDemoMode) return null;
+  if (!user && !isDemoMode) return <Navigate to="/login" replace />;
+
+  const effectiveRole = isDemoMode ? "student" : role;
+
+  if (!effectiveRole) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground font-pixel text-xs">LOADING ROLE...</p>
@@ -42,8 +49,8 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     );
   }
 
-  const nav = role === "teacher" ? TEACHER_NAV : STUDENT_NAV;
-  const defaultRoute = role === "teacher" ? "/teacher/courses" : "/student/assignments";
+  const nav = effectiveRole === "teacher" ? TEACHER_NAV : STUDENT_NAV;
+  const defaultRoute = effectiveRole === "teacher" ? "/teacher/courses" : "/student/assignments";
 
   if (location.pathname === "/dashboard") {
     return <Navigate to={defaultRoute} replace />;
@@ -53,6 +60,11 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     const muted = sfx.toggle();
     setSoundOn(!muted);
     if (!muted) sfx.click();
+  };
+
+  const handleExitDemo = () => {
+    exitDemo();
+    navigate("/login");
   };
 
   return (
@@ -73,9 +85,14 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
                 ATLAS
               </h1>
               <p className="text-base text-muted-foreground mt-1">
-                {role === "teacher" ? "🎓 Teacher" : "📚 Student"}
+                {isDemoMode ? "🎮 Demo Mode" : effectiveRole === "teacher" ? "🎓 Teacher" : "📚 Student"}
               </p>
             </div>
+            {isDemoMode && (
+              <Badge className="bg-primary/20 text-primary border-primary/40 font-pixel text-[8px] animate-pulse">
+                <Play className="h-3 w-3 mr-1" /> DEMO
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -88,9 +105,15 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
               {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5 text-muted-foreground" />}
             </Button>
             <ThemeToggle />
-            <Button variant="outline" size="sm" className="font-pixel text-[9px]" onClick={() => { sfx.click(); signOut(); }}>
-              LOG OUT
-            </Button>
+            {isDemoMode ? (
+              <Button variant="outline" size="sm" className="font-pixel text-[9px]" onClick={handleExitDemo}>
+                EXIT DEMO
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" className="font-pixel text-[9px]" onClick={() => { sfx.click(); signOut(); }}>
+                LOG OUT
+              </Button>
+            )}
           </div>
         </div>
 

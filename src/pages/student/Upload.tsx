@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { demoAssignments, demoLastFeedback } from "@/lib/demoData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,17 +15,19 @@ import { sfx } from "@/lib/retroSfx";
 
 export default function StudentUpload() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const queryClient = useQueryClient();
   const [content, setContent] = useState("");
   const [type, setType] = useState("free_text");
   const [file, setFile] = useState<File | null>(null);
   const [assignmentId, setAssignmentId] = useState("");
   const [grading, setGrading] = useState(false);
-  const [lastFeedback, setLastFeedback] = useState<any>(null);
+  const [lastFeedback, setLastFeedback] = useState<any>(isDemoMode ? demoLastFeedback : null);
 
   const { data: assignments = [] } = useQuery({
     queryKey: ["student-assignments-for-upload"],
     queryFn: async () => {
+      if (isDemoMode) return demoAssignments.map(a => ({ id: a.id, title: a.title, type: a.type }));
       const { data, error } = await supabase
         .from("assignments")
         .select("id, title, type")
@@ -31,11 +35,15 @@ export default function StudentUpload() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const upload = useMutation({
     mutationFn: async () => {
+      if (isDemoMode) {
+        toast.info("Submissions are view-only in demo mode");
+        return { graded: false };
+      }
       if (!assignmentId) throw new Error("Please select an assignment");
       if (!content && !file) throw new Error("Please provide content or upload a file");
 
@@ -49,7 +57,6 @@ export default function StudentUpload() {
         fileUrl = path;
       }
 
-      // Create submission
       const { data: submission, error: subError } = await supabase
         .from("submissions")
         .insert({
@@ -64,7 +71,6 @@ export default function StudentUpload() {
 
       if (subError) throw subError;
 
-      // Trigger AI grading
       setGrading(true);
       const { data: gradeData, error: gradeError } = await supabase.functions.invoke(
         "grade-submission",
@@ -154,9 +160,11 @@ export default function StudentUpload() {
             <Button
               type="submit"
               className="w-full font-pixel text-[8px]"
-              disabled={upload.isPending || grading}
+              disabled={upload.isPending || grading || isDemoMode}
             >
-              {grading ? (
+              {isDemoMode ? (
+                "VIEW-ONLY IN DEMO"
+              ) : grading ? (
                 <><Loader2 className="h-3 w-3 animate-spin mr-1" /> AI GRADING...</>
               ) : upload.isPending ? (
                 "UPLOADING..."
@@ -168,11 +176,10 @@ export default function StudentUpload() {
         </CardContent>
       </Card>
 
-      {/* AI Feedback display */}
       {lastFeedback && (
         <Card className="border-2 border-primary/30 bg-primary/5">
           <CardHeader className="pb-2">
-            <CardTitle className="font-pixel text-[9px]">🤖 AI FEEDBACK</CardTitle>
+            <CardTitle className="font-pixel text-[9px]">🤖 AI FEEDBACK {isDemoMode ? "(DEMO)" : ""}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center gap-3">

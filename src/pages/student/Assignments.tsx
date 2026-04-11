@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { demoAssignments, demoSubmissions } from "@/lib/demoData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,10 +26,12 @@ const TYPE_META: Record<string, { icon: any; label: string; color: string }> = {
 
 export default function StudentAssignments() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
 
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ["student-assignments"],
     queryFn: async () => {
+      if (isDemoMode) return demoAssignments;
       const { data, error } = await supabase
         .from("assignments")
         .select("*, courses(title)")
@@ -35,12 +39,13 @@ export default function StudentAssignments() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const { data: submissions = [] } = useQuery({
     queryKey: ["student-submissions"],
     queryFn: async () => {
+      if (isDemoMode) return demoSubmissions.map(s => ({ assignment_id: s.assignment_id, status: s.status, score: s.score }));
       const { data, error } = await supabase
         .from("submissions")
         .select("assignment_id, status, score")
@@ -48,7 +53,7 @@ export default function StudentAssignments() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const submissionMap = new Map(submissions.map((s) => [s.assignment_id, s]));
@@ -113,8 +118,13 @@ export default function StudentAssignments() {
                           )}
                         </div>
                       </div>
-                      {!sub && (
+                      {!sub && !isDemoMode && (
                         <SubmitDialog assignment={a} />
+                      )}
+                      {!sub && isDemoMode && (
+                        <Button size="sm" className="font-pixel text-[7px] gap-1 shrink-0" disabled>
+                          <Send className="h-3 w-3" /> SUBMIT
+                        </Button>
                       )}
                     </div>
                   </CardContent>

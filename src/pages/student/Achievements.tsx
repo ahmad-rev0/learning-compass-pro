@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDemo } from "@/contexts/DemoContext";
+import { demoGeneratedAchievements, demoBadgeUnlocks } from "@/lib/demoData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,11 +37,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function StudentAchievements() {
   const { user } = useAuth();
+  const { isDemoMode } = useDemo();
   const queryClient = useQueryClient();
 
   const { data: unlocked = [] } = useQuery({
     queryKey: ["badge-unlocks"],
     queryFn: async () => {
+      if (isDemoMode) return demoBadgeUnlocks;
       const { data, error } = await supabase
         .from("badge_unlocks")
         .select("badge_id, unlocked_at")
@@ -47,12 +51,13 @@ export default function StudentAchievements() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const { data: generated = [], isLoading: loadingGenerated } = useQuery({
     queryKey: ["generated-achievements"],
     queryFn: async () => {
+      if (isDemoMode) return demoGeneratedAchievements;
       const { data, error } = await supabase
         .from("generated_achievements")
         .select("*")
@@ -61,11 +66,15 @@ export default function StudentAchievements() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user || isDemoMode,
   });
 
   const generateMutation = useMutation({
     mutationFn: async () => {
+      if (isDemoMode) {
+        toast.success("3 new achievements generated! 🏆 (Demo)");
+        return { count: 3 };
+      }
       const { data, error } = await supabase.functions.invoke("generate-achievements", {
         body: { user_id: user!.id },
       });
@@ -74,8 +83,10 @@ export default function StudentAchievements() {
       return data;
     },
     onSuccess: (data) => {
-      sfx.success();
-      toast.success(`${data.count} new achievements generated! 🏆`);
+      if (!isDemoMode) {
+        sfx.success();
+        toast.success(`${data.count} new achievements generated! 🏆`);
+      }
       queryClient.invalidateQueries({ queryKey: ["generated-achievements"] });
     },
     onError: (e: any) => {
@@ -86,6 +97,10 @@ export default function StudentAchievements() {
 
   const claimMutation = useMutation({
     mutationFn: async (achievementId: string) => {
+      if (isDemoMode) {
+        toast.success("Achievement claimed! +40 XP ⚡ (Demo)");
+        return;
+      }
       const achievement = generated.find((a: any) => a.id === achievementId);
       if (!achievement) throw new Error("Not found");
 
@@ -95,7 +110,6 @@ export default function StudentAchievements() {
         .eq("id", achievementId);
       if (error) throw error;
 
-      // Award XP
       const { data: progress } = await supabase
         .from("gamification_progress")
         .select("*")
@@ -112,8 +126,10 @@ export default function StudentAchievements() {
       return achievement;
     },
     onSuccess: (achievement: any) => {
-      sfx.success();
-      toast.success(`Achievement claimed! +${achievement.xp_reward} XP ⚡`);
+      if (!isDemoMode) {
+        sfx.success();
+        toast.success(`Achievement claimed! +${achievement?.xp_reward} XP ⚡`);
+      }
       queryClient.invalidateQueries({ queryKey: ["generated-achievements"] });
       queryClient.invalidateQueries({ queryKey: ["student-progress"] });
     },
@@ -129,7 +145,6 @@ export default function StudentAchievements() {
 
   return (
     <div className="space-y-6">
-      {/* Header + generate button */}
       <div className="flex items-center justify-between">
         <h2 className="font-pixel text-xs text-foreground flex items-center gap-2">
           <Trophy className="h-4 w-4" /> ACHIEVEMENTS
@@ -149,7 +164,6 @@ export default function StudentAchievements() {
         </Button>
       </div>
 
-      {/* AI-Generated Achievements */}
       {unclaimed.length > 0 && (
         <div className="space-y-2">
           <p className="font-pixel text-[9px] text-accent">🤖 AI-TAILORED CHALLENGES</p>
@@ -214,7 +228,6 @@ export default function StudentAchievements() {
         </div>
       )}
 
-      {/* Claimed AI achievements */}
       {claimed.length > 0 && (
         <div className="space-y-2">
           <p className="font-pixel text-[9px] text-muted-foreground">✅ EARNED ({claimed.length})</p>
@@ -232,7 +245,6 @@ export default function StudentAchievements() {
         </div>
       )}
 
-      {/* Static badges */}
       <div className="space-y-2">
         <p className="font-pixel text-[9px] text-muted-foreground">🏅 MILESTONE BADGES</p>
         <div className="grid gap-3 grid-cols-2 md:grid-cols-3">
