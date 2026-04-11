@@ -82,7 +82,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
               </motion.div>
 
               {/* Boot text */}
-              <div className="font-pixel text-[8px] leading-[2] space-y-0 min-h-[180px]">
+              <div className="font-pixel text-sm leading-[2.2] space-y-0 min-h-[280px]">
                 {BOOT_LINES.slice(0, visibleLines).map((line, i) => (
                   <motion.div
                     key={i}
