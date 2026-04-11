@@ -120,18 +120,23 @@
 }
 
 .dashboard-shell :where(.text-\[7px\], .text-\[8px\]) {
-  font-size: 10px;
-  line-height: 1.5;
-}
-
-.dashboard-shell :where(.text-\[9px\], .text-\[10px\], .text-xs) {
   font-size: 12px;
   line-height: 1.5;
 }
 
+.dashboard-shell :where(.text-\[9px\], .text-\[10px\], .text-xs) {
+  font-size: 15px;
+  line-height: 1.5;
+}
+
 .dashboard-shell :where(.text-sm) {
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.dashboard-shell :where(.text-base) {
+  font-size: 20px;
+  line-height: 1.55;
 }
 
 
