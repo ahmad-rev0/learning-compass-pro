@@ -34,6 +34,8 @@ const STUDENT_NAV = [
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [soundOn, setSoundOn] = useState(!sfx.muted);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const mainRef = useRef<HTMLElement>(null);
   const [showSplash, setShowSplash] = useState(true);
   const { user, role, loading, signOut } = useAuth();
   const { isDemoMode, exitDemo } = useDemo();
