@@ -181,37 +181,36 @@ export function WizardGuide() {
           <WizardAvatar3DCanvas mood={phase === "task" ? "pointing" : mood} />
         </div>
 
-        {/* Speech text */}
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
-          style={{ top: -20 }}
-          animate={{ y: [0, -2, 0] }}
-          transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+        {/* Speech bubble */}
+        <div
+          className="absolute pointer-events-auto"
+          style={{ left: WIZARD_W + 4, top: 8, minWidth: 100 }}
         >
-          <span className="font-pixel text-[7px] text-primary whitespace-nowrap">
-            {phase === "nav"
-              ? "👉 Go here!"
-              : mood === "concerned"
-                ? "⚠ Do this first!"
-                : "👉 Complete this!"}
-          </span>
-        </motion.div>
-
-        {/* Action button — only in nav phase */}
-        {phase === "nav" && (
-          <motion.div
-            className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap"
-            style={{ bottom: -16 }}
-          >
-            <button
-              onClick={handleAction}
-              className="font-pixel text-[7px] text-primary/80 hover:text-primary transition-colors cursor-pointer flex items-center gap-0.5"
-            >
-              {currentStep.action}
-              <ChevronRight className="h-2.5 w-2.5" />
-            </button>
-          </motion.div>
-        )}
+          {/* Bubble tail */}
+          <div
+            className="absolute -left-[6px] top-3 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[6px] border-r-border"
+          />
+          <div
+            className="absolute -left-[4px] top-3 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[5px] border-r-card"
+          />
+          {/* Bubble body */}
+          <div className="bg-card border border-border rounded px-2 py-1.5 shadow-lg">
+            <p className="font-pixel text-[7px] text-foreground whitespace-nowrap leading-relaxed">
+              {phase === "nav"
+                ? (mood === "concerned" ? "This needs attention!" : "Go here next!")
+                : (mood === "concerned" ? "Do this first!" : "Complete this quest!")}
+            </p>
+            {phase === "nav" && (
+              <button
+                onClick={handleAction}
+                className="font-pixel text-[7px] text-primary hover:text-primary/80 transition-colors cursor-pointer flex items-center gap-0.5 mt-1"
+              >
+                {currentStep.action}
+                <ChevronRight className="h-2.5 w-2.5" />
+              </button>
+            )}
+          </div>
+        </div>
       </motion.div>
     </>
   );
