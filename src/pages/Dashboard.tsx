@@ -56,20 +56,20 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
   };
 
   return (
-    <div className="min-h-screen bg-background pixel-grid-bg">
+    <div className="dashboard-shell min-h-screen bg-background pixel-grid-bg">
       <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
         <div className="container flex items-center justify-between py-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <motion.img
               src={atlasLogo}
               alt="Atlas"
-              width={32}
-              height={32}
+              width={48}
+              height={48}
               animate={{ y: [0, -3, 0] }}
               transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             />
             <div>
-              <h1 className="font-pixel text-xs md:text-sm tracking-wide text-foreground">
+              <h1 className="font-pixel text-sm md:text-base tracking-[0.12em] text-foreground">
                 ATLAS
               </h1>
               <p className="text-sm text-muted-foreground mt-0.5">
@@ -81,11 +81,11 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-10 w-10"
               onClick={toggleSound}
               title={soundOn ? "Mute sounds" : "Unmute sounds"}
             >
-              {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+              {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5 text-muted-foreground" />}
             </Button>
             <ThemeToggle />
             <Button variant="outline" size="sm" className="font-pixel text-[9px]" onClick={() => { sfx.click(); signOut(); }}>
@@ -104,13 +104,13 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
                   to={to}
                   onClick={() => sfx.navigate()}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-2 font-pixel text-[9px] border-b-2 transition-colors whitespace-nowrap",
+                    "flex items-center gap-2 px-4 py-3 font-pixel text-[9px] border-b-2 transition-colors whitespace-nowrap",
                     active
                       ? "border-primary text-primary"
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-4 w-4" />
                   {label}
                 </Link>
               );
