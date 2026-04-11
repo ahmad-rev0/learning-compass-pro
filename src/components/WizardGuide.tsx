@@ -76,22 +76,21 @@ export function WizardGuide() {
   }, [placeAtNav]);
 
   const positionInsideCard = (card: HTMLElement) => {
-    const rect = card.getBoundingClientRect();
-    // Scroll the card into view first
+    // Scroll card into view first
     card.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // Wait for scroll to settle, then place wizard inside the card on the right
+    // Wait for scroll to settle, then compute page-absolute position
     setTimeout(() => {
       const freshRect = card.getBoundingClientRect();
       setHighlightRect(freshRect);
 
-      // Position wizard inside the card, on the right side
-      const wx = freshRect.right - WIZARD_W - 8;
-      const wy = freshRect.top + freshRect.height / 2 - WIZARD_H / 2;
+      // Convert viewport coords to page-absolute coords
+      const pageX = freshRect.right - WIZARD_W - 8 + window.scrollX;
+      const pageY = freshRect.top + freshRect.height / 2 - WIZARD_H / 2 + window.scrollY;
 
       setWizardPos({
-        x: Math.max(10, Math.min(window.innerWidth - WIZARD_W - 10, wx)),
-        y: Math.max(100, Math.min(window.innerHeight - WIZARD_H - 40, wy)),
+        x: Math.max(10, pageX),
+        y: Math.max(100, pageY),
       });
       setReady(true);
     }, 500);
@@ -156,10 +155,10 @@ export function WizardGuide() {
         />
       )}
 
-      {/* Wizard — FIXED, does not move on scroll */}
+      {/* Wizard — fixed in nav phase, absolute (scrolls with page) in task phase */}
       <motion.div
         ref={wizardRef}
-        className="fixed z-50 pointer-events-auto"
+        className={`${phase === "task" ? "absolute" : "fixed"} z-50 pointer-events-auto`}
         initial={{ opacity: 0, scale: 0.3 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 100, damping: 18 }}
