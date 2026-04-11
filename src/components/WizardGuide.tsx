@@ -35,7 +35,7 @@ export function WizardGuide() {
     if (!currentStep || dismissed) { setReady(false); return; }
 
     const findTarget = () => {
-      const el = findTargetElement(currentStep.route, location.pathname);
+      const el = findTargetElement(currentStep.route);
 
       if (el) {
         const rect = el.getBoundingClientRect();
