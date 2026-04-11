@@ -14,13 +14,18 @@ interface QuestNode {
 
 /* ── Mastery-scaled values ── */
 function getMasteryScale(mastery: number) {
+  const aggressive = mastery > 0.8;
+  
   return {
-    emissiveIntensity: 0.1 + mastery * 0.9,
-    particleCount: Math.floor(4 + mastery * 20),
-    particleSpeed: 0.2 + mastery * 0.8,
-    particleSpread: 0.8 + mastery * 1.2,
-    glowScale: 0.8 + mastery * 0.6,
-    bobIntensity: 0.03 + mastery * 0.08,
+    emissiveIntensity: aggressive ? 1.5 : 0.1 + mastery * 0.9,
+    particleCount: Math.floor(aggressive ? 40 : 4 + mastery * 20),
+    particleSpeed: aggressive ? 2.0 : 0.2 + mastery * 0.8,
+    particleSpread: aggressive ? 2.5 : 0.8 + mastery * 1.2,
+    glowScale: aggressive ? 1.8 : 0.8 + mastery * 0.6,
+    bobIntensity: aggressive ? 0.18 : 0.03 + mastery * 0.08,
+    pulseFreq: aggressive ? 6 : 1.5 + mastery * 2,
+    rotationSpeed: aggressive ? 1.5 : 0.5 + mastery,
+    orbPulseAmp: aggressive ? 0.08 : 0.03 * mastery,
   };
 }
 
@@ -52,16 +57,27 @@ function Platform({
     return { base: "#7f8c8d", top: "#a0aeb0", emissive: "#5a6566", accent: "#bdc3c7", glow: "#aabbcc" };
   }, [node]);
 
+  const aggressive = node.mastery > 0.8;
+
   useFrame((state) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    groupRef.current.position.y = position[1] + Math.sin(t * 0.5 + index * 0.9) * m.bobIntensity;
+    // Aggressive bob: faster + stronger
+    const bobFreq = aggressive ? 1.8 : 0.5;
+    groupRef.current.position.y = position[1] + Math.sin(t * bobFreq + index * 0.9) * m.bobIntensity;
 
-    // Glow ring pulsing based on mastery
+    // Aggressive platforms also rotate slightly
+    if (aggressive) {
+      groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.08;
+    }
+
+    // Glow ring pulsing
     if (glowRef.current) {
-      const s = m.glowScale + Math.sin(t * (1.5 + node.mastery * 2)) * 0.1 * node.mastery;
+      const s = m.glowScale + Math.sin(t * m.pulseFreq) * (aggressive ? 0.4 : 0.1) * node.mastery;
       glowRef.current.scale.set(s, s, s);
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = 0.15 + node.mastery * 0.45;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = aggressive
+        ? 0.5 + Math.sin(t * 4) * 0.3
+        : 0.15 + node.mastery * 0.45;
     }
   });
 
@@ -163,34 +179,78 @@ function Platform({
 function MasteryOrb({ position, color, mastery }: { position: [number, number, number]; color: string; mastery: number }) {
   const ref = useRef<THREE.Mesh>(null);
   const innerRef = useRef<THREE.Mesh>(null);
+  const aggressive = mastery > 0.8;
   useFrame((state) => {
     if (!ref.current) return;
     const t = state.clock.elapsedTime;
-    const baseScale = 0.08 + mastery * 0.14;
-    const pulse = baseScale + Math.sin(t * (2 + mastery * 3)) * 0.03 * mastery;
-    ref.current.scale.setScalar(pulse * 10);
-    ref.current.rotation.y = t * (0.5 + mastery);
-    if (innerRef.current) {
-      innerRef.current.scale.setScalar(pulse * 6);
+    if (aggressive) {
+      // Rapid pulsing, wild rotation
+      const pulse = 0.25 + Math.sin(t * 6) * 0.1 + Math.sin(t * 9) * 0.05;
+      ref.current.scale.setScalar(pulse * 10);
+      ref.current.rotation.y = t * 2.5;
+      ref.current.rotation.x = Math.sin(t * 3) * 0.5;
+      if (innerRef.current) {
+        innerRef.current.scale.setScalar(pulse * 7);
+        innerRef.current.rotation.z = t * 3;
+      }
+    } else {
+      const baseScale = 0.08 + mastery * 0.14;
+      const pulse = baseScale + Math.sin(t * (2 + mastery * 3)) * 0.03 * mastery;
+      ref.current.scale.setScalar(pulse * 10);
+      ref.current.rotation.y = t * (0.5 + mastery);
+      if (innerRef.current) {
+        innerRef.current.scale.setScalar(pulse * 6);
+      }
     }
   });
   return (
     <group position={position}>
       {/* Outer glow */}
       <mesh ref={ref}>
-        <icosahedronGeometry args={[0.01, 1]} />
-        <meshBasicMaterial color={color} transparent opacity={0.25 + mastery * 0.3} />
+        <icosahedronGeometry args={[0.01, aggressive ? 2 : 1]} />
+        <meshBasicMaterial color={color} transparent opacity={aggressive ? 0.6 : 0.25 + mastery * 0.3} />
       </mesh>
       {/* Inner bright core */}
       <mesh ref={innerRef}>
-        <icosahedronGeometry args={[0.01, 1]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.4 + mastery * 0.4} />
+        <icosahedronGeometry args={[0.01, aggressive ? 2 : 1]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={aggressive ? 0.9 : 0.4 + mastery * 0.4} />
+      </mesh>
+      {/* Extra energy ring for aggressive */}
+      {aggressive && <AggressiveEnergyRing color={color} />}
+    </group>
+  );
+}
+
+/* ── Aggressive energy ring: spinning halos for >80% mastery ── */
+function AggressiveEnergyRing({ color }: { color: string }) {
+  const ring1 = useRef<THREE.Mesh>(null);
+  const ring2 = useRef<THREE.Mesh>(null);
+  const ring3 = useRef<THREE.Mesh>(null);
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    if (ring1.current) { ring1.current.rotation.x = t * 3; ring1.current.rotation.z = t * 1.5; }
+    if (ring2.current) { ring2.current.rotation.y = t * 4; ring2.current.rotation.x = t * 0.8; }
+    if (ring3.current) { ring3.current.rotation.z = t * 2.5; ring3.current.rotation.y = t * 1.2; }
+  });
+  return (
+    <group>
+      <mesh ref={ring1}>
+        <torusGeometry args={[0.22, 0.008, 8, 32]} />
+        <meshBasicMaterial color={color} transparent opacity={0.7} />
+      </mesh>
+      <mesh ref={ring2}>
+        <torusGeometry args={[0.28, 0.006, 8, 32]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
+      </mesh>
+      <mesh ref={ring3}>
+        <torusGeometry args={[0.18, 0.005, 8, 24]} />
+        <meshBasicMaterial color={color} transparent opacity={0.5} />
       </mesh>
     </group>
   );
 }
 
-/* ── Mastery-scaled particles: more particles, faster, wider spread with mastery ── */
+
 function MasteryParticles({ color, mastery }: { color: string; mastery: number }) {
   const ref = useRef<THREE.Points>(null);
   const m = getMasteryScale(mastery);
@@ -205,13 +265,25 @@ function MasteryParticles({ color, mastery }: { color: string; mastery: number }
     return arr;
   }, [mastery, m.particleCount, m.particleSpread]);
 
+  const aggressive = mastery > 0.8;
+
   useFrame((state) => {
     if (!ref.current) return;
-    ref.current.rotation.y = state.clock.elapsedTime * m.particleSpeed;
-    // Vertical float
+    const t = state.clock.elapsedTime;
+    ref.current.rotation.y = t * m.particleSpeed;
+    if (aggressive) {
+      ref.current.rotation.x = Math.sin(t * 0.7) * 0.3;
+    }
     const posArr = ref.current.geometry.attributes.position.array as Float32Array;
     for (let i = 0; i < m.particleCount; i++) {
-      posArr[i * 3 + 1] += Math.sin(state.clock.elapsedTime * (1 + mastery * 2) + i) * 0.002 * (1 + mastery);
+      const speed = aggressive ? 0.012 : 0.002;
+      const freq = aggressive ? (3 + i * 0.5) : (1 + mastery * 2);
+      posArr[i * 3 + 1] += Math.sin(t * freq + i) * speed * (1 + mastery);
+      // Aggressive: also wobble horizontally
+      if (aggressive) {
+        posArr[i * 3] += Math.cos(t * 4 + i * 0.8) * 0.003;
+        posArr[i * 3 + 2] += Math.sin(t * 3.5 + i * 1.1) * 0.003;
+      }
     }
     ref.current.geometry.attributes.position.needsUpdate = true;
   });
