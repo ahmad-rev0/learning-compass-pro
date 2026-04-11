@@ -33,20 +33,28 @@ const STUDENT_NAV = [
 
 export default function DashboardLayout({ children }: { children?: React.ReactNode }) {
   const [soundOn, setSoundOn] = useState(!sfx.muted);
-  const [showSplash, setShowSplash] = useState(false);
+  // Initialize synchronously so we don't miss it on remount
+  const [showSplash, setShowSplash] = useState(() => {
+    const splashKey = "atlas_splash_shown";
+    if (!sessionStorage.getItem(splashKey)) {
+      return true;
+    }
+    return false;
+  });
   const { user, role, loading, signOut } = useAuth();
   const { isDemoMode, exitDemo } = useDemo();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Show splash once per session on first dashboard load
-  useEffect(() => {
-    const splashKey = "atlas_splash_shown";
-    if (!sessionStorage.getItem(splashKey)) {
-      setShowSplash(true);
-      sessionStorage.setItem(splashKey, "1");
-    }
-  }, []);
+  const handleSplashComplete = () => {
+    sessionStorage.setItem("atlas_splash_shown", "1");
+    setShowSplash(false);
+  };
+
+  // Show splash BEFORE any auth/loading guards
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
 
   if (loading && !isDemoMode) return null;
   if (!user && !isDemoMode) return <Navigate to="/login" replace />;
@@ -78,10 +86,6 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     exitDemo();
     navigate("/login");
   };
-
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
 
   return (
     <div className="dashboard-shell min-h-screen bg-background pixel-grid-bg">
