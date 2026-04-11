@@ -79,6 +79,10 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     navigate("/login");
   };
 
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
     <div className="dashboard-shell min-h-screen bg-background pixel-grid-bg">
       <header className="sticky top-0 z-50 border-b-3 border-border bg-card/95 backdrop-blur-sm">
