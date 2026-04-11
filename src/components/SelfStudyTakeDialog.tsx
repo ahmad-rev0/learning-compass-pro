@@ -12,6 +12,51 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { Play, CheckCircle2, XCircle, ArrowRight, Trophy, BookOpen } from "lucide-react";
 
+/** After completing a self-study assignment, trigger the agentic system to analyze performance and generate quests */
+async function triggerAgentAfterSelfStudy(userId: string) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    
+    await supabase.functions.invoke("agent-nudge", {
+      body: { user_id: userId },
+    });
+  } catch (e) {
+    console.warn("Agent nudge after self-study failed:", e);
+  }
+}
+
+/** Award XP for completing a self-study assignment */
+async function awardSelfStudyXp(userId: string, score: number, xpReward: number) {
+  try {
+    const { data: progress } = await supabase
+      .from("gamification_progress")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+    
+    if (!progress) return;
+    
+    const xpEarned = Math.round((score / 100) * xpReward) + 5;
+    const newXp = progress.xp + xpEarned;
+    const newLevel = Math.floor(newXp / 100) + 1;
+    const momentumDelta = score >= 80 ? 5 : score >= 50 ? 2 : -3;
+    const newMomentum = Math.max(0, Math.min(100, Number(progress.momentum_score) + momentumDelta));
+    
+    await supabase
+      .from("gamification_progress")
+      .update({
+        xp: newXp,
+        level: newLevel,
+        momentum_score: newMomentum,
+        last_activity_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+  } catch (e) {
+    console.warn("XP award failed:", e);
+  }
+}
+
 interface SelfStudyTakeDialogProps {
   assignment: any;
 }
@@ -139,13 +184,19 @@ function McqQuiz({
       if (error) throw error;
       return pct;
     },
-    onSuccess: (pct) => {
+    onSuccess: async (pct) => {
       setScore(pct);
       setShowResults(true);
       onComplete();
       toast.success(`Quiz complete! Score: ${pct}%`, {
         description: pct >= 80 ? "Great job! 🎉" : "Keep practicing! 💪",
       });
+      // Trigger agentic system
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await awardSelfStudyXp(user.id, pct, assignment.xp_reward);
+        await triggerAgentAfterSelfStudy(user.id);
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
