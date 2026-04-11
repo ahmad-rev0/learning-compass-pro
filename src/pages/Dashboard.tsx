@@ -51,6 +51,11 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     setShowSplash(false);
   };
 
+  // Show splash BEFORE any auth/loading guards
+  if (showSplash) {
+    return <SplashScreen onComplete={handleSplashComplete} />;
+  }
+
   if (loading && !isDemoMode) return null;
   if (!user && !isDemoMode) return <Navigate to="/login" replace />;
 
@@ -81,10 +86,6 @@ export default function DashboardLayout({ children }: { children?: React.ReactNo
     exitDemo();
     navigate("/login");
   };
-
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
 
   return (
     <div className="dashboard-shell min-h-screen bg-background pixel-grid-bg">
