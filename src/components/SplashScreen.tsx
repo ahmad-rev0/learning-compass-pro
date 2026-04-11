@@ -78,7 +78,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 transition={{ type: "spring", stiffness: 200, damping: 12 }}
                 className="text-center mb-6"
               >
-                <img src={atlasLogo} alt="Atlas" width={48} height={48} className="mx-auto mb-3" />
+                <img src={atlasLogo} alt="Atlas" width={120} height={120} className="mx-auto mb-3" />
               </motion.div>
 
               {/* Boot text */}
