@@ -85,9 +85,24 @@ The agent fires **without the student ever asking**:
 
 ---
 
-## Getting Started (Local Development)
+## Why ATLAS?
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-org/atlas-agentic-lms.git
-   cd atlas-agentic-lms
+| Traditional AI Tutoring | **ATLAS Agentic Approach** |
+| :--- | :--- |
+| Waits for the student to ask | **Detects struggle autonomously via momentum scoring** |
+| Links to generic documentation | **Uses Exa AI to surface exact Stack Overflow answers** |
+| One‑size‑fits‑all advice | **Calibrated urgency (`micro_stuck` vs `emergency`)** |
+| Disconnected from grading | **Closed loop: Grade → Analyze → Intervene → Verify** |
+
+---
+
+## License
+
+All Rights Reserved. 
+
+---
+
+<p align="center">
+  <b>From Passive LMS to Active Learning Partner.</b><br/>
+  <i>Watch over every student, in real time.</i>
+</p>
