@@ -4,6 +4,7 @@
   <img src="https://img.shields.io/badge/status-active%20development-brightgreen" alt="Status">
   <img src="https://img.shields.io/badge/AI-Gemini%20%2B%20Exa-blue" alt="AI Models">
   <img src="https://img.shields.io/badge/architecture-agentic%20state%20machine-purple" alt="Architecture">
+  <img src="https://img.shields.io/badge/contributors-2-orange" alt="Contributors">
 </p>
 
 > **ATLAS transforms passive learning management into an active, gamified, self‑correcting tutoring system.**
@@ -17,6 +18,8 @@ ATLAS is a fully autonomous agent—**not a chatbot**—that runs a continuous *
 ATLAS was built as a two‑person hackathon project by **Muhammad Ahmad Nadeem** and **Maryam Khan**. Due to the fast‑paced nature of the event and tight deadlines, all commits were pushed from Ahmad's GitHub account for efficiency. Maryam contributed equally to the architecture, ideation, and feature development throughout the build process and has been formally added as a repository contributor.
 
 We believe in transparent credit—this project reflects the full collaborative effort of both team members.
+
+Both contributors continue to actively develop and maintain ATLAS.
 
 ---
 
