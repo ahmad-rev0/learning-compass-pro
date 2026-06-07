@@ -1,78 +1,98 @@
+# Plan: Atlas — Full Implementation Study Guide (Markdown)
 
+I'll produce a single comprehensive Markdown document saved to `/mnt/documents/atlas-implementation-guide.md` (delivered as a downloadable artifact) that teaches you how to rebuild this entire project from scratch.
 
-## MOMENTUM & STUCKNESS COMPASS — Deployable Architecture
+## What the document will contain
 
-### Overview
+### 1. Project Overview
+- Vision, problem solved, target users (students + teachers)
+- Feature map (auth, courses, assignments, submissions, AI grading, agentic nudges, quests, study plans, self-study, achievements, gamification)
 
-**Frontend (React, this Lovable project):** Interactive dashboard deployed via Lovable publish (fallback) or Vercel (manual).
+### 2. Tech Stack & Why
+- **Frontend:** React 18 + Vite + TypeScript + Tailwind + shadcn/ui + React Router + TanStack Query + Framer Motion + Recharts + Three.js
+- **Backend (primary):** Lovable Cloud / Supabase (Postgres, Auth, Storage, Edge Functions in Deno)
+- **Backend (simulation):** Optional Python FastAPI service on Render
+- **AI:** Lovable AI Gateway (Gemini) for grading/planning + Exa AI for neural resource discovery
 
-**Backend (Python/FastAPI, downloadable):** Agent engine with simulation, state machine, Exa AI, gamification. Generated to `/mnt/documents/` for Render deployment.
+### 3. High-Level Architecture
+- Mermaid diagram of: Client ↔ Supabase (DB/Auth/Storage) ↔ Edge Functions ↔ (Gemini + Exa)
+- Triple-AI pattern (Evaluation / Planning / Discovery)
+- Agentic loop: Observe → Evaluate → Decide → Act
 
----
+### 4. Database Schema (complete)
+- Every table (`profiles`, `user_roles`, `courses`, `course_enrollments`, `assignments`, `submissions`, `gamification_progress`, `quests`, `study_plans`, `self_study_assignments`, `agent_logs`, `badge_unlocks`, `generated_achievements`)
+- Full `CREATE TABLE` SQL with columns, defaults, GRANTs, RLS policies
+- All `SECURITY DEFINER` helper functions (`has_role`, `is_course_teacher`, `is_enrolled_in_course`, `is_assignment_teacher`)
+- Triggers for new-user profile/role/gamification creation
+- Storage bucket setup (`submissions`)
 
-### Frontend (React) — Pages & Components
+### 5. Authentication & Roles
+- Email/password + Google OAuth setup
+- `app_role` enum + `user_roles` table pattern (anti-recursion)
+- `useAuth` hook implementation
+- Protected route patterns
 
-1. **Dashboard page (`/`)** — Main view with:
-   - Student state indicator (normal/micro_stuck/momentum_dip/double_trouble) with color-coded badges
-   - Live event log (scrolling timeline of agent decisions)
-   - Active quests panel with progress and XP rewards
-   - XP & streak stats bar
-   - Exa resource links panel
+### 6. Edge Functions (each fully explained with code)
+- `agent-nudge` — the agentic core: signal aggregation, intervention classification (emergency_recovery / re_engagement / skill_support / side_quest / momentum_boost / quest_focus), Gemini tool-calling for quest generation, Exa per-step resource enrichment
+- `grade-submission` — AI rubric grading + feedback JSON
+- `generate-study-plan` — weekly plan synthesis
+- `generate-assignment` — AI assignment authoring
+- `generate-achievements` — dynamic badge generation
+- CORS, JWT validation, input validation (Zod), Lovable AI Gateway invocation pattern
 
-2. **Controls panel** — Start/stop/reset simulation, adjust speed, force-trigger states
+### 7. Agentic Logic Deep-Dive
+- State machine: `normal`, `micro_stuck`, `momentum_dip`, `double_trouble`, `emergency_recovery`
+- Momentum scoring formula
+- Thresholds and decision tree (pseudocode + real code)
+- Quest schema: `steps[]` with `text`, `resource_url`, `resource_title`
+- Start → Work → Complete workflow
 
-3. **API integration** — Configurable backend URL (env var `VITE_API_URL`), polling or SSE for live updates
+### 8. Frontend Structure
+- Routing map (`/auth`, `/dashboard`, student & teacher pages)
+- Key components: `StateIndicator`, `QuestsPanel`, `AgentDecisionLog`, `MomentumChart`, `StatsBar`, `WizardGuide`, `QuestPath3D`
+- Design system: HSL semantic tokens in `index.css`, `tailwind.config.ts`
+- TanStack Query patterns for Supabase data
+- Framer Motion animations + retro SFX
 
-### Backend (FastAPI) — Endpoints
+### 9. Python FastAPI Simulation Backend
+- Full file tree
+- `main.py` endpoints
+- `MockStudent`, `Agent`, `QuestEngine`, `ExaClient`, state machine
+- Async simulation loop
+- Render deployment (`render.yaml`)
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/simulation/start` | POST | Start simulation loop |
-| `/api/simulation/stop` | POST | Stop simulation |
-| `/api/simulation/reset` | POST | Reset state |
-| `/api/state` | GET | Current student state + metrics |
-| `/api/quests` | GET | Active & completed quests |
-| `/api/events` | GET | Event log (paginated) |
-| `/api/stats` | GET | XP, streak, quest counts |
-| `/api/trigger/{state}` | POST | Force-trigger a state for demo |
+### 10. Integration Patterns
+- Exa neural + keyword search (TS + Python clients)
+- Lovable AI Gateway tool-calling for structured output
+- Realtime/polling for live event log
 
-Backend runs the same agent logic (state machine, mock student, Exa client, quest engine) as previously specified, but wrapped in FastAPI with background task for the simulation loop.
+### 11. Security Checklist
+- RLS on every table
+- GRANTs to `authenticated` / `service_role`
+- No service-role key in client
+- Role checks via SECURITY DEFINER
 
-### Backend Files (generated to `/mnt/documents/momentum_compass_backend/`)
+### 12. Step-by-Step Rebuild Roadmap
+- Phase 1: Scaffold (Vite + Tailwind + shadcn)
+- Phase 2: Auth + roles + profiles
+- Phase 3: Courses/assignments CRUD
+- Phase 4: Submissions + storage + AI grading
+- Phase 5: Gamification (XP, momentum, streaks)
+- Phase 6: Agentic nudge engine + Exa
+- Phase 7: Study plans + self-study + achievements
+- Phase 8: Dashboards (student + teacher) + analytics
+- Phase 9: Polish (3D, animations, splash, demo mode)
 
-```
-momentum_compass_backend/
-├── main.py              # FastAPI app + CORS + endpoints
-├── config.py            # Thresholds, settings
-├── requirements.txt     # fastapi, uvicorn, exa-py, python-dotenv
-├── render.yaml          # Render deploy config
-├── agent/
-│   ├── state_machine.py
-│   └── agent_core.py
-├── simulation/
-│   ├── mock_student.py
-│   └── event_generator.py
-├── exa/
-│   └── exa_client.py
-├── gamification/
-│   ├── quest_engine.py
-│   └── xp_system.py
-└── utils/
-    ├── logger.py
-    └── helpers.py
-```
+### 13. Environment & Secrets
+- `LOVABLE_API_KEY`, `EXA_API_KEY`, `SUPABASE_*`
+- `.env` conventions, where each secret is used
 
-### Deployment
+### 14. Appendix
+- Glossary
+- Useful code snippets (CORS helper, Exa wrapper, momentum calculator, RLS helper functions)
+- Mermaid diagrams (architecture, agent loop, DB ERD)
 
-- **Lovable publish**: Frontend works immediately with configurable API URL
-- **Vercel**: Clone repo from GitHub, deploy as static site, set `VITE_API_URL` env var
-- **Render**: Upload backend folder, Render auto-detects FastAPI via `render.yaml`, set `EXA_API_KEY` env var
+## Deliverable
+A single file `atlas-implementation-guide.md` (~estimated 40–60 KB, several thousand lines with extensive code snippets) emitted via `<presentation-artifact>` so you can download and study it.
 
-### Technical Details
-
-- Backend uses `asyncio` background task for simulation loop with configurable interval
-- Frontend polls `/api/state` + `/api/events` every 2 seconds during active simulation
-- All state stored in-memory (Python globals/singleton) — no database needed
-- CORS configured to allow all origins for hackathon flexibility
-- Exa calls wrapped with try/except fallback returning mock data if API key missing
-
+Approve and I'll generate it.
